@@ -15,8 +15,6 @@
     <HBox spacing="10.0" alignment="CENTER">
         <Label text="Largeur:"/>
         <TextField fx:id="widthField" text="8" prefWidth="50"/>
-        <Label text="Hauteur:"/>
-        <TextField fx:id="heightField" text="8" prefWidth="50"/>
     </HBox>
     <HBox spacing="10.0" alignment="CENTER">
         <Label text="PV Pion:"/>
