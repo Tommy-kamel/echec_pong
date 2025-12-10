@@ -4,20 +4,31 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.Region;
+import javafx.geometry.Pos;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.Circle;
 import com.example.echec_pong.entity.echec.pions.*;
+import com.example.echec_pong.entity.pong.accessoires.Raquette;
+import com.example.echec_pong.entity.pong.accessoires.Balle;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class BoardRenderer {
+    private static final double CELL_SIZE = 60.0;
     
     public static void renderBoard(Pane gameArea, int width, int height, 
                                    int pionHealth, int cavalierHealth, int fouHealth, 
                                    int tourHealth, int dameHealth, int roiHealth) {
+        gameArea.getChildren().clear();
+
+        double boardWidth = width * CELL_SIZE;
+        double boardHeight = height * CELL_SIZE;
+
         GridPane grid = new GridPane();
-        grid.setAlignment(javafx.geometry.Pos.CENTER);
+        grid.setAlignment(Pos.CENTER);
         
         // Create pieces for black player (top)
         List<Pion> blackMainPieces = new ArrayList<>();
@@ -89,7 +100,7 @@ public class BoardRenderer {
         // Create grid
         for(int row=0; row<height; row++){
             for(int col=0; col<width; col++){
-                Rectangle rect = new Rectangle(60,60);
+                Rectangle rect = new Rectangle(CELL_SIZE,CELL_SIZE);
                 rect.setFill((row+col)%2==0 ? Color.BEIGE : Color.SADDLEBROWN);
                 StackPane cell = new StackPane();
                 cell.getChildren().add(rect);
@@ -123,6 +134,53 @@ public class BoardRenderer {
                 grid.add(cell, col, row);
             }
         }
-        gameArea.getChildren().add(grid);
+        // Overlay container for paddles and ball, same size as the board
+        Pane overlay = new Pane();
+        overlay.setPrefSize(boardWidth, boardHeight);
+
+        // Create paddles positions: between pawns (rows 1 and height-2)
+        double paddleWidth = boardWidth / 3;
+        double paddleHeight = 10;
+
+        double blackPaddleX = (boardWidth - paddleWidth) / 2;
+        double blackPaddleY = (2 * CELL_SIZE) - (paddleHeight / 2);
+        Raquette raquetteNoir = new Raquette(blackPaddleX, blackPaddleY, paddleWidth, paddleHeight, "noir");
+        Rectangle blackPaddleRect = new Rectangle(paddleWidth, paddleHeight);
+        blackPaddleRect.setFill(Color.DARKBLUE);
+        blackPaddleRect.setStroke(Color.YELLOW);
+        blackPaddleRect.setStrokeWidth(2);
+        blackPaddleRect.setLayoutX(blackPaddleX);
+        blackPaddleRect.setLayoutY(blackPaddleY);
+
+        double whitePaddleX = (boardWidth - paddleWidth) / 2;
+        double whitePaddleY = ((height - 2) * CELL_SIZE) - (paddleHeight / 2);
+        Raquette raquetteBlanc = new Raquette(whitePaddleX, whitePaddleY, paddleWidth, paddleHeight, "blanc");
+        Rectangle whitePaddleRect = new Rectangle(paddleWidth, paddleHeight);
+        whitePaddleRect.setFill(Color.LIGHTBLUE);
+        whitePaddleRect.setStroke(Color.YELLOW);
+        whitePaddleRect.setStrokeWidth(2);
+        whitePaddleRect.setLayoutX(whitePaddleX);
+        whitePaddleRect.setLayoutY(whitePaddleY);
+
+        // Ball at center
+        double ballRadius = 8;
+        double ballX = boardWidth / 2;
+        double ballY = boardHeight / 2;
+        Balle balle = new Balle(ballX, ballY, 3, 3, ballRadius);
+        Circle ballCircle = new Circle(ballRadius);
+        ballCircle.setFill(Color.RED);
+        ballCircle.setLayoutX(ballX);
+        ballCircle.setLayoutY(ballY);
+
+        overlay.getChildren().addAll(blackPaddleRect, whitePaddleRect, ballCircle);
+
+        StackPane boardContainer = new StackPane();
+        boardContainer.setPrefSize(boardWidth, boardHeight);
+        boardContainer.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        StackPane.setAlignment(grid, Pos.CENTER);
+        StackPane.setAlignment(overlay, Pos.CENTER);
+        boardContainer.getChildren().addAll(grid, overlay);
+
+        gameArea.getChildren().add(boardContainer);
     }
 }

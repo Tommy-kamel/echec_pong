@@ -135,5 +135,6 @@ public class HelloController {
     private void createBoard() {
         BoardRenderer.renderBoard(gameArea, width, height, pionHealth, cavalierHealth, 
                                   fouHealth, tourHealth, dameHealth, roiHealth);
+        gameStatusLabel.setText("Jeu prêt ! Utilisez les flèches pour déplacer votre raquette.");
     }
 }

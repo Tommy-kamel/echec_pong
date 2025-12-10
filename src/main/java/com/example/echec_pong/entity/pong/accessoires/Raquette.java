@@ -1,47 +1,61 @@
-package com.example.echec_pong.entity.pong;
+package com.example.echec_pong.entity.pong.accessoires;
 
 public class Raquette {
-    private int positionX;
-    private int positionY;
-    private int width;
-    private int height;
+    private double positionX;
+    private double positionY;
+    private double largeur;
+    private double hauteur;
+    private String joueur;
 
-    public Raquette(int positionX, int positionY, int width, int height) {
+    public Raquette(double positionX, double positionY, double largeur, double hauteur, String joueur) {
         this.positionX = positionX;
         this.positionY = positionY;
-        this.width = width;
-        this.height = height;
+        this.largeur = largeur;
+        this.hauteur = hauteur;
+        this.joueur = joueur;
     }
 
-    public int getPositionX() {
+    public double getPositionX() {
         return positionX;
     }
 
-    public void setPositionX(int positionX) {
+    public void setPositionX(double positionX) {
         this.positionX = positionX;
     }
 
-    public int getPositionY() {
+    public double getPositionY() {
         return positionY;
     }
 
-    public void setPositionY(int positionY) {
+    public void setPositionY(double positionY) {
         this.positionY = positionY;
     }
 
-    public int getWidth() {
-        return width;
+    public double getLargeur() {
+        return largeur;
     }
 
-    public void setWidth(int width) {
-        this.width = width;
+    public void setLargeur(double largeur) {
+        this.largeur = largeur;
     }
 
-    public int getHeight() {
-        return height;
+    public double getHauteur() {
+        return hauteur;
     }
 
-    public void setHeight(int height) {
-        this.height = height;
+    public void setHauteur(double hauteur) {
+        this.hauteur = hauteur;
+    }
+
+    public String getJoueur() {
+        return joueur;
+    }
+
+    public void deplacerGauche(double vitesse) {
+        positionX -= vitesse;
+    }
+
+    public void deplacerDroite(double vitesse) {
+        positionX += vitesse;
     }
 }
