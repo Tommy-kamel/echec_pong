@@ -10,6 +10,7 @@ import javafx.geometry.Pos;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Polygon;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import com.example.echec_pong.entity.echec.pions.*;
@@ -180,11 +181,11 @@ public class BoardRenderer {
         whitePaddleRect.setLayoutX(whitePaddleX);
         whitePaddleRect.setLayoutY(whitePaddleY);
 
-        // Ball at center
+        // Ball at center - initially stationary (velocity 0,0)
         double ballRadius = 8;
         double ballX = (width * CELL_SIZE) / 2;
         double ballY = (BOARD_ROWS * CELL_SIZE) / 2;
-        Balle balle = new Balle(ballX, ballY, 1, 1, ballRadius);
+        Balle balle = new Balle(ballX, ballY, 0, 0, ballRadius);
         Circle ballCircle = new Circle(ballRadius);
         ballCircle.setFill(Color.RED);
         ballCircle.setCenterX(ballX);
@@ -227,6 +228,9 @@ public class BoardRenderer {
         gameState.setRaquetteBlanc(raquetteBlanc);
         gameState.setBalle(balle);
         
+        // Store isHost for later use
+        boolean isClientView = !isHost;
+        
         // Ajouter toutes les pièces au GameState avec leurs positions
         for(int i = 0; i < blackMainPieces.size(); i++) {
             gameState.addPiece(blackMainPieces.get(i), 0, i);
@@ -255,8 +259,47 @@ public class BoardRenderer {
             }
         }
         
+        // Créer la flèche de service (initialement invisible)
+        Polygon serveArrow = new Polygon();
+        serveArrow.getPoints().addAll(
+            0.0, -30.0,  // pointe haute
+            -15.0, 0.0,  // gauche
+            -5.0, 0.0,   // gauche intérieur
+            -5.0, 20.0,  // bas gauche
+            5.0, 20.0,   // bas droite
+            5.0, 0.0,    // droite intérieur
+            15.0, 0.0    // droite
+        );
+        serveArrow.setFill(Color.YELLOW);
+        serveArrow.setStroke(Color.ORANGE);
+        serveArrow.setStrokeWidth(2);
+        serveArrow.setVisible(false);
+        
+        // Label pour indiquer le service
+        Label serveLabel = new Label("Appuyez sur ESPACE pour servir");
+        serveLabel.setFont(Font.font("System", FontWeight.BOLD, 16));
+        serveLabel.setTextFill(Color.YELLOW);
+        serveLabel.setStyle("-fx-background-color: rgba(0,0,0,0.7); -fx-padding: 10;");
+        serveLabel.setVisible(false);
+        
+        // Positionner la flèche et le label près de la balle
+        double centerX = (width * CELL_SIZE) / 2;
+        double centerY = (BOARD_ROWS * CELL_SIZE) / 2;
+        serveArrow.setLayoutX(centerX);
+        serveArrow.setLayoutY(centerY - 60); // Au-dessus de la balle
+        serveLabel.setLayoutX(centerX - 150);
+        serveLabel.setLayoutY(centerY + 50);
+        
+        // Rotate label back for client so text is readable
+        if (isClientView) {
+            serveLabel.setRotate(180);
+            // La flèche sera tournée dynamiquement dans updateUI() en tenant compte de la rotation du plateau
+        }
+        
+        overlay.getChildren().addAll(serveArrow, serveLabel);
+        
         return new GameRenderData(gameState, grid, overlay, blackPaddleRect, whitePaddleRect, 
-                                  ballCircle, pieceHealthLabels);
+                                  ballCircle, pieceHealthLabels, serveArrow, serveLabel);
     }
     
 }

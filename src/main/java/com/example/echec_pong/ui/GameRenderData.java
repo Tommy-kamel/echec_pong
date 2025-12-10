@@ -5,6 +5,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.Polygon;
 import com.example.echec_pong.entity.echec.pions.Pion;
 import com.example.echec_pong.game_logic.GameState;
 
@@ -18,10 +19,13 @@ public class GameRenderData {
     public final Rectangle whitePaddleRect;
     public final Circle ballCircle;
     public final Map<Pion, Label> healthLabels;
+    public final Polygon serveArrow;
+    public final Label serveLabel;
     
     public GameRenderData(GameState gameState, GridPane grid, Pane overlay,
                          Rectangle blackPaddleRect, Rectangle whitePaddleRect,
-                         Circle ballCircle, Map<Pion, Label> pieceHealthLabels) {
+                         Circle ballCircle, Map<Pion, Label> pieceHealthLabels,
+                         Polygon serveArrow, Label serveLabel) {
         this.gameState = gameState;
         this.grid = grid;
         this.overlay = overlay;
@@ -29,5 +33,7 @@ public class GameRenderData {
         this.whitePaddleRect = whitePaddleRect;
         this.ballCircle = ballCircle;
         this.healthLabels = pieceHealthLabels;
+        this.serveArrow = serveArrow;
+        this.serveLabel = serveLabel;
     }
 }

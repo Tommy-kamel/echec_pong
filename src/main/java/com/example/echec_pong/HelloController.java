@@ -8,6 +8,7 @@ import javafx.scene.control.Button;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.KeyCode;
 
 import java.io.*;
 import java.net.*;
@@ -136,7 +137,7 @@ public class HelloController {
                 dameHealth = in.readInt();
                 roiHealth = in.readInt();
                 String firstServe = in.readUTF();
-                blackStarts = firstServe.equalsIgnoreCase("host");
+                blackStarts = firstServe.equalsIgnoreCase("Hôte");
                 Platform.runLater(() -> {
                     statusLabel.setText("Démarrage du jeu...");
                     loadGame();
@@ -168,11 +169,17 @@ public class HelloController {
             String tourHealthText = data.tourHealth.getText().trim();
             String dameHealthText = data.dameHealth.getText().trim();
             String roiHealthText = data.roiHealth.getText().trim();
-            String firstServeText = data.firstServeField.getText().trim();
+            
+            // Récupérer la sélection du ComboBox
+            String firstServeSelection = data.firstServeCombo.getValue();
+            if (firstServeSelection == null) {
+                data.statusLabel.setText("Veuillez sélectionner le premier serveur !");
+                return;
+            }
             
             if (widthText.isEmpty() || pionHealthText.isEmpty() || cavalierHealthText.isEmpty() ||
                 fouHealthText.isEmpty() || tourHealthText.isEmpty() || dameHealthText.isEmpty() ||
-                roiHealthText.isEmpty() || firstServeText.isEmpty()) {
+                roiHealthText.isEmpty()) {
                 data.statusLabel.setText("Veuillez remplir tous les champs !");
                 return;
             }
@@ -185,8 +192,10 @@ public class HelloController {
             tourHealth = Integer.parseInt(tourHealthText);
             dameHealth = Integer.parseInt(dameHealthText);
             roiHealth = Integer.parseInt(roiHealthText);
-            firstServe = firstServeText;
-            blackStarts = firstServe.equalsIgnoreCase("host");
+            
+            // Convertir la sélection en "white" ou "black"
+            firstServe = firstServeSelection.contains("Blanc") ? "white" : "black";
+            blackStarts = firstServe.equals("black");
         } catch (NumberFormatException e) {
             data.statusLabel.setText("Erreur : Entrez des nombres valides !");
             return;
@@ -223,9 +232,11 @@ public class HelloController {
             });
         }
         
-        // Only host controls the ball
+        // Only host controls the ball and service
         if (isHost) {
-            gameLogic.startGame(blackStarts);
+            String server = blackStarts ? "black" : "white";
+            gameLogic.startGame(server);
+            sendServeState(server); // Notify client
         }
         
         startGameLoop(renderData);
@@ -242,19 +253,31 @@ public class HelloController {
             
             @Override
             public void handle(long now) {
+                // Pas besoin d'animer la flèche (elle se met à jour uniquement avec les touches)
+                
                 // Only host runs the physics simulation
                 if (isHost) {
-                    gameLogic.update();
-                    
-                    // Send ball state to client periodically (moins fréquent)
-                    if (networkRunning && now - lastNetworkUpdate > NETWORK_UPDATE_INTERVAL) {
-                        sendBallState();
-                        lastNetworkUpdate = now;
+                    try {
+                        gameLogic.update();
+                        
+                        // Send ball state to client periodically (moins fréquent)
+                        if (networkRunning && now - lastNetworkUpdate > NETWORK_UPDATE_INTERVAL) {
+                            sendBallState();
+                            lastNetworkUpdate = now;
+                        }
+                    } catch (Exception e) {
+                        System.err.println("[HOST] Exception dans gameLogic.update(): " + e.getMessage());
+                        e.printStackTrace();
                     }
                 }
                 
-                updateUI(renderData);
-                checkWinCondition();
+                try {
+                    updateUI(renderData);
+                    checkWinCondition();
+                } catch (Exception e) {
+                    System.err.println((isHost ? "[HOST] " : "[CLIENT] ") + "Exception dans updateUI: " + e.getMessage());
+                    e.printStackTrace();
+                }
             }
         };
         gameLoop.start();
@@ -270,6 +293,45 @@ public class HelloController {
         // Update ball position - CSS rotation handles client transformation automatically
         renderData.ballCircle.setCenterX(gameLogic.getGameState().getBalle().getPositionX());
         renderData.ballCircle.setCenterY(gameLogic.getGameState().getBalle().getPositionY());
+        
+        // Update serve arrow and label
+        boolean waitingForServe = gameLogic.getGameState().isWaitingForServe();
+        String currentServer = gameLogic.getGameState().getCurrentServer();
+        boolean isMyServe = (isHost && "white".equals(currentServer)) || (!isHost && "black".equals(currentServer));
+        
+        if (waitingForServe) {
+            renderData.serveArrow.setVisible(isMyServe);
+            renderData.serveLabel.setVisible(isMyServe);
+            
+            if (isMyServe) {
+                // Récupérer l'angle actuel
+                double angle = gameLogic.getGameState().getServeAngle();
+                
+                // Faire pivoter la flèche selon l'angle
+                // La flèche pointe toujours vers l'adversaire, mais s'incline selon l'angle
+                boolean servingUp = "white".equals(currentServer);
+                
+                double arrowRotation;
+                if (servingUp) {
+                    // Host sert vers le haut: flèche pointe vers le haut, inclinée selon l'angle
+                    arrowRotation = angle;
+                } else {
+                    // Client sert vers le bas: flèche pointe vers le bas (180°), inclinée selon l'angle
+                    // Le plateau du client est déjà inversé visuellement, donc on ajoute juste 180° pour la direction
+                    arrowRotation = 180 + angle;
+                }
+                
+                renderData.serveArrow.setRotate(arrowRotation);
+                
+                // Update label text avec l'angle actuel
+                String angleText = String.format("%.0f°", angle);
+                String direction = angle < -5 ? "← " : (angle > 5 ? " →" : " |");
+                renderData.serveLabel.setText("ESPACE pour servir | ←→ pour angle " + direction + " (" + angleText + ")");
+            }
+        } else {
+            renderData.serveArrow.setVisible(false);
+            renderData.serveLabel.setVisible(false);
+        }
         
         // Update health labels - MUST run on both HOST and CLIENT to reflect health changes
         for (Map.Entry<Pion, Label> entry : healthLabels.entrySet()) {
@@ -336,8 +398,46 @@ public class HelloController {
     
     private void handleKeyPressed(KeyEvent event) {
         System.out.println((isHost ? "[HOST] " : "[CLIENT] ") + "Touche pressée: " + event.getCode());
+        
         switch (event.getCode()) {
+            case SPACE:
+                // Servir la balle
+                if (gameLogic.getGameState().isWaitingForServe()) {
+                    boolean canServe = false;
+                    String currentServer = gameLogic.getGameState().getCurrentServer();
+                    
+                    if (isHost && "white".equals(currentServer)) {
+                        canServe = true;
+                    } else if (!isHost && "black".equals(currentServer)) {
+                        canServe = true;
+                    }
+                    
+                    if (canServe) {
+                        gameLogic.serveBall();
+                        sendServeAction(); // Notifier l'autre joueur
+                    }
+                }
+                break;
             case LEFT:
+                // Pendant le service: ajuster l'angle vers la gauche
+                if (gameLogic.getGameState().isWaitingForServe()) {
+                    boolean canAdjustAngle = false;
+                    String currentServer = gameLogic.getGameState().getCurrentServer();
+                    
+                    if (isHost && "white".equals(currentServer)) {
+                        canAdjustAngle = true;
+                    } else if (!isHost && "black".equals(currentServer)) {
+                        canAdjustAngle = true;
+                    }
+                    
+                    if (canAdjustAngle) {
+                        gameLogic.adjustServeAngle(-5); // -5 degrés vers la gauche
+                        sendServeAngle();
+                        break; // Ne pas bouger la raquette pendant le service
+                    }
+                }
+                
+                // Sinon: déplacer la raquette normalement
                 if (isHost) {
                     // Host contrôle la raquette blanche (bas de son écran)
                     gameLogic.moveWhitePaddleLeft();
@@ -349,6 +449,25 @@ public class HelloController {
                 }
                 break;
             case RIGHT:
+                // Pendant le service: ajuster l'angle vers la droite
+                if (gameLogic.getGameState().isWaitingForServe()) {
+                    boolean canAdjustAngle = false;
+                    String currentServer = gameLogic.getGameState().getCurrentServer();
+                    
+                    if (isHost && "white".equals(currentServer)) {
+                        canAdjustAngle = true;
+                    } else if (!isHost && "black".equals(currentServer)) {
+                        canAdjustAngle = true;
+                    }
+                    
+                    if (canAdjustAngle) {
+                        gameLogic.adjustServeAngle(+5); // +5 degrés vers la droite
+                        sendServeAngle();
+                        break; // Ne pas bouger la raquette pendant le service
+                    }
+                }
+                
+                // Sinon: déplacer la raquette normalement
                 if (isHost) {
                     // Host contrôle la raquette blanche (bas de son écran)
                     gameLogic.moveWhitePaddleRight();
@@ -365,8 +484,7 @@ public class HelloController {
     }
     
     private void handleKeyReleased(KeyEvent event) {
-        // Optional: stop paddle movement when key released
-        // Currently paddles move discretely per key press
+        // Pas besoin de gérer le relâchement pour ce système
     }
     
     private synchronized void sendPaddlePosition() {
@@ -447,6 +565,46 @@ public class HelloController {
         }
     }
     
+    private synchronized void sendServeState(String server) {
+        if (out == null || !networkRunning) return;
+        
+        try {
+            GameStateUpdate update = GameStateUpdate.serveState(server);
+            out.writeObject(update);
+            out.flush();
+            out.reset();
+        } catch (IOException e) {
+            System.err.println("Erreur envoi état service: " + e.getMessage());
+        }
+    }
+    
+    private synchronized void sendServeAction() {
+        if (out == null || !networkRunning) return;
+        
+        try {
+            GameStateUpdate update = GameStateUpdate.serveAction();
+            out.writeObject(update);
+            out.flush();
+            out.reset();
+        } catch (IOException e) {
+            System.err.println("Erreur envoi action service: " + e.getMessage());
+        }
+    }
+    
+    private synchronized void sendServeAngle() {
+        if (out == null || !networkRunning) return;
+        
+        try {
+            double angle = gameLogic.getGameState().getServeAngle();
+            GameStateUpdate update = GameStateUpdate.serveAngle(angle);
+            out.writeObject(update);
+            out.flush();
+            out.reset();
+        } catch (IOException e) {
+            System.err.println("Erreur envoi angle service: " + e.getMessage());
+        }
+    }
+    
     private void startNetworkListener() {
         new Thread(() -> {
             System.out.println((isHost ? "[HOST] " : "[CLIENT] ") + "Network listener démarré");
@@ -472,6 +630,15 @@ public class HelloController {
                                     break;
                                 case GAME_OVER:
                                     handleRemoteGameOver(update);
+                                    break;
+                                case SERVE_STATE:
+                                    handleRemoteServeState(update);
+                                    break;
+                                case SERVE_ACTION:
+                                    handleRemoteServeAction();
+                                    break;
+                                case SERVE_ANGLE:
+                                    handleRemoteServeAngle(update);
                                     break;
                             }
                         } catch (Exception e) {
@@ -611,6 +778,34 @@ public class HelloController {
         }
     }
     
+    private void handleRemoteServeState(GameStateUpdate update) {
+        String server = update.getServer();
+        gameLogic.getGameState().setCurrentServer(server);
+        gameLogic.getGameState().setWaitingForServe(true);
+        
+        // Réinitialiser la balle au centre
+        double centerX = (gameLogic.getGameState().getBoardWidth() * gameLogic.getGameState().getCellSize()) / 2;
+        double centerY = (gameLogic.getGameState().getBoardRows() * gameLogic.getGameState().getCellSize()) / 2;
+        gameLogic.getGameState().getBalle().setPositionX(centerX);
+        gameLogic.getGameState().getBalle().setPositionY(centerY);
+        
+        // Angle initial au centre
+        gameLogic.getGameState().setServeAngle(0.0);
+        
+        System.out.println((isHost ? "[HOST]" : "[CLIENT]") + " Service initialisé: serveur=" + server);
+    }
+    
+    private void handleRemoteServeAction() {
+        gameLogic.serveBall();
+        System.out.println((isHost ? "[HOST]" : "[CLIENT]") + " Balle servie (depuis réseau)");
+    }
+    
+    private void handleRemoteServeAngle(GameStateUpdate update) {
+        double angle = update.getServeAngle();
+        gameLogic.getGameState().setServeAngle(angle);
+        System.out.println((isHost ? "[HOST]" : "[CLIENT]") + " Angle changé: " + angle + "°");
+    }
+    
     private void handleReplay() {
         // Cacher le bouton Rejouer
         if(replayButton != null) {
@@ -658,5 +853,17 @@ public class HelloController {
         } catch (IOException e) {
             // Ignorer les erreurs de fermeture
         }
+    }
+    
+    private void executeServe() {
+        // Lancer la balle avec GameLogic
+        gameLogic.serveBall();
+        
+        // Envoyer l'action de service à l'autre joueur
+        sendServeAction();
+        
+        String playerSide = isHost ? "blanc (bas)" : "noir (haut)";
+        double angle = gameLogic.getGameState().getServeAngle();
+        gameStatusLabel.setText("Service ! Angle: " + (int)angle + "° - Vous jouez " + playerSide);
     }
 }

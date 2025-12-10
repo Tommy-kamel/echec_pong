@@ -5,6 +5,7 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.layout.HBox?>
 <VBox alignment="CENTER" spacing="10.0" xmlns:fx="http://javafx.com/fxml">
     <padding>
@@ -38,7 +39,7 @@
     </HBox>
     <HBox spacing="10.0" alignment="CENTER">
         <Label text="Premier service:"/>
-        <TextField fx:id="firstServeField" text="host" prefWidth="100" promptText="host ou client"/>
+        <ComboBox fx:id="firstServeCombo" prefWidth="100"/>
     </HBox>
     <Label fx:id="statusLabel" text="En attente de client..."/>
     <Button text="Démarrer" fx:id="startButton"/>

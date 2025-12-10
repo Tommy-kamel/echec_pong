@@ -37,7 +37,11 @@ public class GameLogic {
      * Met à jour le jeu (appelé à chaque frame)
      */
     public void update() {
-        if(gameState.isGameOver() || !ballMoving) {
+        if(gameState.isGameOver() || gameState.isWaitingForServe()) {
+            return;
+        }
+        
+        if(!ballMoving) {
             return;
         }
         
@@ -161,10 +165,64 @@ public class GameLogic {
     /**
      * Démarre le jeu avec le service
      */
-    public void startGame(boolean blackStarts) {
+    public void startGame(String server) {
+        gameState.setCurrentServer(server);
+        gameState.setWaitingForServe(true);
+        
+        // Position initiale de la balle au centre
+        resetBall();
+        
+        // Angle initial au centre
+        gameState.setServeAngle(0.0);
+    }
+    
+    /**
+     * Lance la balle après le service avec l'angle choisi
+     */
+    public void serveBall() {
+        if(!gameState.isWaitingForServe()) {
+            return;
+        }
+        
         ballMoving = true;
-        if(!blackStarts) {
-            gameState.getBalle().inverserVitesseY();
+        gameState.setWaitingForServe(false);
+        
+        // Déterminer la direction selon le serveur
+        boolean servingUp = "white".equals(gameState.getCurrentServer());
+        
+        // Calculer les composantes de vitesse selon l'angle
+        // Vitesse de base
+        double baseSpeed = 3.0;
+        double angle = Math.toRadians(gameState.getServeAngle());
+        
+        // Composante horizontale (X) selon l'angle
+        double velocityX = baseSpeed * Math.sin(angle);
+        
+        // Composante verticale (Y) - toujours vers l'adversaire
+        double velocityY = baseSpeed * Math.cos(angle);
+        if(servingUp) {
+            velocityY = -Math.abs(velocityY); // vers le haut (négatif)
+            // velocityX reste tel quel pour le serveur blanc
+        } else {
+            velocityY = Math.abs(velocityY); // vers le bas (positif)
+            velocityX = -velocityX; // Inverser X pour le client car son plateau est inversé visuellement
+        }
+        
+        // Appliquer les vitesses
+        gameState.getBalle().setVitesseX(velocityX);
+        gameState.getBalle().setVitesseY(velocityY);
+    }
+    
+    /**
+     * Change l'angle du service (avec flèches gauche/droite)
+     */
+    public void adjustServeAngle(int delta) {
+        if(gameState.isWaitingForServe()) {
+            double newAngle = gameState.getServeAngle() + delta;
+            // Limiter l'angle entre -45 et +45 degrés
+            if(newAngle < -45) newAngle = -45;
+            if(newAngle > 45) newAngle = 45;
+            gameState.setServeAngle(newAngle);
         }
     }
     

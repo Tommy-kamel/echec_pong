@@ -9,7 +9,10 @@ public class GameStateUpdate implements Serializable {
         PADDLE_MOVE,
         BALL_STATE,
         PIECE_HIT,
-        GAME_OVER
+        GAME_OVER,
+        SERVE_STATE,     // Initialiser le serveur
+        SERVE_ACTION,    // Lancer la balle
+        SERVE_ANGLE      // Changer l'angle
     }
     
     private UpdateType type;
@@ -32,7 +35,11 @@ public class GameStateUpdate implements Serializable {
     private String pieceNom;     // "Pion", "Tour", "Cavalier", etc.
     
     // Game over data
-    private String winner; 
+    private String winner;
+    
+    // Serve data
+    private String server;  // "white" ou "black"
+    private double serveAngle;  // Angle en degrés
     
     public GameStateUpdate(UpdateType type) {
         this.type = type;
@@ -71,6 +78,22 @@ public class GameStateUpdate implements Serializable {
         return update;
     }
     
+    public static GameStateUpdate serveState(String server) {
+        GameStateUpdate update = new GameStateUpdate(UpdateType.SERVE_STATE);
+        update.server = server;
+        return update;
+    }
+    
+    public static GameStateUpdate serveAction() {
+        return new GameStateUpdate(UpdateType.SERVE_ACTION);
+    }
+    
+    public static GameStateUpdate serveAngle(double angle) {
+        GameStateUpdate update = new GameStateUpdate(UpdateType.SERVE_ANGLE);
+        update.serveAngle = angle;
+        return update;
+    }
+    
     // Getters
     public UpdateType getType() { return type; }
     public double getPaddleX() { return paddleX; }
@@ -85,4 +108,6 @@ public class GameStateUpdate implements Serializable {
     public String getPieceCouleur() { return pieceCouleur; }
     public String getPieceNom() { return pieceNom; }
     public String getWinner() { return winner; }
+    public String getServer() { return server; }
+    public double getServeAngle() { return serveAngle; }
 }
