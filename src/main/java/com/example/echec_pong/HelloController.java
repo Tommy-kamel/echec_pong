@@ -8,6 +8,7 @@ import javafx.scene.control.Button;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.KeyCode;
 
 import java.io.*;
 import java.net.*;
@@ -136,7 +137,7 @@ public class HelloController {
                 dameHealth = in.readInt();
                 roiHealth = in.readInt();
                 String firstServe = in.readUTF();
-                blackStarts = firstServe.equalsIgnoreCase("host");
+                blackStarts = firstServe.equalsIgnoreCase("Hôte");
                 Platform.runLater(() -> {
                     statusLabel.setText("Démarrage du jeu...");
                     loadGame();
@@ -252,19 +253,31 @@ public class HelloController {
             
             @Override
             public void handle(long now) {
+                // Pas besoin d'animer la flèche (elle se met à jour uniquement avec les touches)
+                
                 // Only host runs the physics simulation
                 if (isHost) {
-                    gameLogic.update();
-                    
-                    // Send ball state to client periodically (moins fréquent)
-                    if (networkRunning && now - lastNetworkUpdate > NETWORK_UPDATE_INTERVAL) {
-                        sendBallState();
-                        lastNetworkUpdate = now;
+                    try {
+                        gameLogic.update();
+                        
+                        // Send ball state to client periodically (moins fréquent)
+                        if (networkRunning && now - lastNetworkUpdate > NETWORK_UPDATE_INTERVAL) {
+                            sendBallState();
+                            lastNetworkUpdate = now;
+                        }
+                    } catch (Exception e) {
+                        System.err.println("[HOST] Exception dans gameLogic.update(): " + e.getMessage());
+                        e.printStackTrace();
                     }
                 }
                 
-                updateUI(renderData);
-                checkWinCondition();
+                try {
+                    updateUI(renderData);
+                    checkWinCondition();
+                } catch (Exception e) {
+                    System.err.println((isHost ? "[HOST] " : "[CLIENT] ") + "Exception dans updateUI: " + e.getMessage());
+                    e.printStackTrace();
+                }
             }
         };
         gameLoop.start();
@@ -385,6 +398,7 @@ public class HelloController {
     
     private void handleKeyPressed(KeyEvent event) {
         System.out.println((isHost ? "[HOST] " : "[CLIENT] ") + "Touche pressée: " + event.getCode());
+        
         switch (event.getCode()) {
             case SPACE:
                 // Servir la balle
@@ -470,8 +484,7 @@ public class HelloController {
     }
     
     private void handleKeyReleased(KeyEvent event) {
-        // Optional: stop paddle movement when key released
-        // Currently paddles move discretely per key press
+        // Pas besoin de gérer le relâchement pour ce système
     }
     
     private synchronized void sendPaddlePosition() {
@@ -840,5 +853,17 @@ public class HelloController {
         } catch (IOException e) {
             // Ignorer les erreurs de fermeture
         }
+    }
+    
+    private void executeServe() {
+        // Lancer la balle avec GameLogic
+        gameLogic.serveBall();
+        
+        // Envoyer l'action de service à l'autre joueur
+        sendServeAction();
+        
+        String playerSide = isHost ? "blanc (bas)" : "noir (haut)";
+        double angle = gameLogic.getGameState().getServeAngle();
+        gameStatusLabel.setText("Service ! Angle: " + (int)angle + "° - Vous jouez " + playerSide);
     }
 }

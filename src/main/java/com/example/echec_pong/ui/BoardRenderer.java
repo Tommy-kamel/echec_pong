@@ -181,11 +181,11 @@ public class BoardRenderer {
         whitePaddleRect.setLayoutX(whitePaddleX);
         whitePaddleRect.setLayoutY(whitePaddleY);
 
-        // Ball at center
+        // Ball at center - initially stationary (velocity 0,0)
         double ballRadius = 8;
         double ballX = (width * CELL_SIZE) / 2;
         double ballY = (BOARD_ROWS * CELL_SIZE) / 2;
-        Balle balle = new Balle(ballX, ballY, 1, 1, ballRadius);
+        Balle balle = new Balle(ballX, ballY, 0, 0, ballRadius);
         Circle ballCircle = new Circle(ballRadius);
         ballCircle.setFill(Color.RED);
         ballCircle.setCenterX(ballX);
