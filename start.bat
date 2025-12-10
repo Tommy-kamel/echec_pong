@@ -1,0 +1,3 @@
+@echo off
+echo Lancement rapide du jeu...
+mvn javafx:run

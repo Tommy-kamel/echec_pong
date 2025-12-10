@@ -11,11 +11,12 @@ public class HostSettingsData {
     public final TextField tourHealth;
     public final TextField dameHealth;
     public final TextField roiHealth;
+    public final TextField firstServeField;
     public final Label statusLabel;
 
     public HostSettingsData(TextField widthField, TextField pionHealth, TextField cavalierHealth,
                            TextField fouHealth, TextField tourHealth, TextField dameHealth,
-                           TextField roiHealth, Label statusLabel) {
+                           TextField roiHealth, TextField firstServeField, Label statusLabel) {
         this.widthField = widthField;
         this.pionHealth = pionHealth;
         this.cavalierHealth = cavalierHealth;
@@ -23,6 +24,7 @@ public class HostSettingsData {
         this.tourHealth = tourHealth;
         this.dameHealth = dameHealth;
         this.roiHealth = roiHealth;
+        this.firstServeField = firstServeField;
         this.statusLabel = statusLabel;
     }
 }

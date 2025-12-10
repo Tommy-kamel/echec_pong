@@ -46,12 +46,13 @@ public class ViewLoader {
             TextField tourHealth = (TextField) root.lookup("#tourHealth");
             TextField dameHealth = (TextField) root.lookup("#dameHealth");
             TextField roiHealth = (TextField) root.lookup("#roiHealth");
+            TextField firstServeField = (TextField) root.lookup("#firstServeField");
             Label statusLabel = (Label) root.lookup("#statusLabel");
             Button startButton = (Button) root.lookup("#startButton");
 
             HostSettingsData data = new HostSettingsData(widthField, pionHealth, cavalierHealth, 
                                                          fouHealth, tourHealth, dameHealth, 
-                                                         roiHealth, statusLabel);
+                                                         roiHealth, firstServeField, statusLabel);
 
             startButton.setOnAction(e -> onStartGame.accept(data));
             onServerStart.accept(statusLabel);
@@ -63,13 +64,20 @@ public class ViewLoader {
         }
     }
     
-    public static void loadClientWaiting(StackPane mainContainer) {
+    public static ClientWaitingData loadClientWaiting(StackPane mainContainer) {
         try {
             FXMLLoader loader = new FXMLLoader(ViewLoader.class.getResource("/com/example/echec_pong/ClientWaiting.fxml"));
             Node root = loader.load();
             mainContainer.getChildren().setAll(root);
+            
+            TextField serverIpField = (TextField) root.lookup("#serverIpField");
+            Button connectButton = (Button) root.lookup("#connectButton");
+            Label statusLabel = (Label) root.lookup("#statusLabel");
+            
+            return new ClientWaitingData(serverIpField, connectButton, statusLabel);
         } catch (IOException e) {
             e.printStackTrace();
+            return null;
         }
     }
     
@@ -81,8 +89,9 @@ public class ViewLoader {
 
             Label gameStatusLabel = (Label) root.lookup("#gameStatusLabel");
             Pane gameArea = (Pane) root.lookup("#gameArea");
+            Button replayButton = (Button) root.lookup("#replayButton");
 
-            return new GameViewData(gameStatusLabel, gameArea);
+            return new GameViewData(gameStatusLabel, gameArea, replayButton);
         } catch (IOException e) {
             e.printStackTrace();
             return null;

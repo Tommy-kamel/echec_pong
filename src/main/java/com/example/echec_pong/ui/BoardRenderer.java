@@ -5,24 +5,30 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.geometry.Pos;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Circle;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import com.example.echec_pong.entity.echec.pions.*;
 import com.example.echec_pong.entity.pong.accessoires.Raquette;
 import com.example.echec_pong.entity.pong.accessoires.Balle;
+import com.example.echec_pong.game_logic.GameState;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class BoardRenderer {
     private static final double CELL_SIZE = 60.0;
     private static final int BOARD_ROWS = 8; // Fixe: mêmes espaces que l'échiquier standard
     
-    public static void renderBoard(Pane gameArea, int width, int height, 
+    public static GameRenderData renderBoard(Pane gameArea, int width, int height, 
                                    int pionHealth, int cavalierHealth, int fouHealth, 
-                                   int tourHealth, int dameHealth, int roiHealth) {
+                                   int tourHealth, int dameHealth, int roiHealth, boolean isHost) {
         gameArea.getChildren().clear();
 
         double boardWidth = width * CELL_SIZE;
@@ -119,17 +125,26 @@ public class BoardRenderer {
                 }
                 
                 if(piece != null){
-                    Label label = new Label(piece.getSymbol());
-                    label.setStyle("-fx-font-size: 40px; -fx-font-weight: bold;");
+                    VBox pieceContainer = new VBox();
+                    pieceContainer.setAlignment(Pos.CENTER);
+                    
+                    Label symbolLabel = new Label(piece.getSymbol());
+                    symbolLabel.setFont(Font.font("System", FontWeight.BOLD, 36));
+                    
+                    Label healthLabel = new Label("HP:" + piece.getSante());
+                    healthLabel.setFont(Font.font("System", FontWeight.NORMAL, 10));
+                    healthLabel.setTextFill(Color.RED);
                     // All pieces of the same player have the same color
                     if(row <= 1){
                         // Black player (top) - always black pieces
-                        label.setTextFill(Color.BLACK);
+                        symbolLabel.setTextFill(Color.BLACK);
                     }else{
                         // White player (bottom) - always white/light gray pieces  
-                        label.setTextFill(Color.WHITESMOKE);
+                        symbolLabel.setTextFill(Color.GRAY);
                     }
-                    cell.getChildren().add(label);
+                    
+                    pieceContainer.getChildren().addAll(symbolLabel, healthLabel);
+                    cell.getChildren().add(pieceContainer);
                 }
                 
                 grid.add(cell, col, row);
@@ -140,10 +155,10 @@ public class BoardRenderer {
         overlay.setPrefSize(boardWidth, boardHeight);
 
         // Create paddles positions: between pawns (rows 1 and height-2)
-        double paddleWidth = boardWidth / 3;
+        double paddleWidth = width * CELL_SIZE * 0.15;
         double paddleHeight = 10;
 
-        double blackPaddleX = (boardWidth - paddleWidth) / 2;
+        double blackPaddleX = ((width * CELL_SIZE) - paddleWidth) / 2;
         // Rapproché du rang des pions noirs (haut du rang vide)
         double blackPaddleY = (2 * CELL_SIZE) + (CELL_SIZE * 0.25) - (paddleHeight / 2);
         Raquette raquetteNoir = new Raquette(blackPaddleX, blackPaddleY, paddleWidth, paddleHeight, "noir");
@@ -154,7 +169,7 @@ public class BoardRenderer {
         blackPaddleRect.setLayoutX(blackPaddleX);
         blackPaddleRect.setLayoutY(blackPaddleY);
 
-        double whitePaddleX = (boardWidth - paddleWidth) / 2;
+        double whitePaddleX = ((width * CELL_SIZE) - paddleWidth) / 2;
         // Rapproché du rang des pions blancs (bas du rang vide)
         double whitePaddleY = ((BOARD_ROWS - 2) * CELL_SIZE) - (CELL_SIZE * 0.25) - (paddleHeight / 2);
         Raquette raquetteBlanc = new Raquette(whitePaddleX, whitePaddleY, paddleWidth, paddleHeight, "blanc");
@@ -167,13 +182,15 @@ public class BoardRenderer {
 
         // Ball at center
         double ballRadius = 8;
-        double ballX = boardWidth / 2;
-        double ballY = boardHeight / 2;
-        Balle balle = new Balle(ballX, ballY, 3, 3, ballRadius);
+        double ballX = (width * CELL_SIZE) / 2;
+        double ballY = (BOARD_ROWS * CELL_SIZE) / 2;
+        Balle balle = new Balle(ballX, ballY, 1, 1, ballRadius);
         Circle ballCircle = new Circle(ballRadius);
         ballCircle.setFill(Color.RED);
-        ballCircle.setLayoutX(ballX);
-        ballCircle.setLayoutY(ballY);
+        ballCircle.setCenterX(ballX);
+        ballCircle.setCenterY(ballY);
+        ballCircle.setLayoutX(0);
+        ballCircle.setLayoutY(0);
 
         overlay.getChildren().addAll(blackPaddleRect, whitePaddleRect, ballCircle);
 
@@ -183,7 +200,63 @@ public class BoardRenderer {
         StackPane.setAlignment(grid, Pos.CENTER);
         StackPane.setAlignment(overlay, Pos.CENTER);
         boardContainer.getChildren().addAll(grid, overlay);
+        
+        // Client sees the board rotated 180 degrees (their pieces at bottom)
+        if (!isHost) {
+            boardContainer.setRotate(180);
+            // Rotate individual pieces back so they're readable
+            for (javafx.scene.Node node : grid.getChildren()) {
+                if (node instanceof StackPane) {
+                    for (javafx.scene.Node child : ((StackPane) node).getChildren()) {
+                        if (child instanceof VBox) {
+                            child.setRotate(180);
+                        }
+                    }
+                }
+            }
+            // Rotate paddles back (ball doesn't need rotation as it's a circle)
+            blackPaddleRect.setRotate(180);
+            whitePaddleRect.setRotate(180);
+        }
 
         gameArea.getChildren().add(boardContainer);
+        
+        // Créer GameState et ajouter les pièces
+        GameState gameState = new GameState(width);
+        gameState.setRaquetteNoir(raquetteNoir);
+        gameState.setRaquetteBlanc(raquetteBlanc);
+        gameState.setBalle(balle);
+        
+        // Ajouter toutes les pièces au GameState avec leurs positions
+        for(int i = 0; i < blackMainPieces.size(); i++) {
+            gameState.addPiece(blackMainPieces.get(i), 0, i);
+        }
+        for(int i = 0; i < blackPawns.size(); i++) {
+            gameState.addPiece(blackPawns.get(i), 1, i);
+        }
+        for(int i = 0; i < whitePawns.size(); i++) {
+            gameState.addPiece(whitePawns.get(i), BOARD_ROWS - 2, i);
+        }
+        for(int i = 0; i < whiteMainPieces.size(); i++) {
+            gameState.addPiece(whiteMainPieces.get(i), BOARD_ROWS - 1, i);
+        }
+        
+        // Créer map des pièces vers leurs labels pour mise à jour
+        Map<Pion, Label> pieceHealthLabels = new HashMap<>();
+        for(int row = 0; row < BOARD_ROWS; row++) {
+            for(int col = 0; col < width; col++) {
+                Pion piece = gameState.getPieceAt(row, col);
+                if(piece != null) {
+                    StackPane cell = (StackPane) grid.getChildren().get(row * width + col);
+                    VBox container = (VBox) cell.getChildren().get(1);
+                    Label healthLabel = (Label) container.getChildren().get(1);
+                    pieceHealthLabels.put(piece, healthLabel);
+                }
+            }
+        }
+        
+        return new GameRenderData(gameState, grid, overlay, blackPaddleRect, whitePaddleRect, 
+                                  ballCircle, pieceHealthLabels);
     }
+    
 }
