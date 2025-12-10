@@ -4,6 +4,7 @@ import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
+import javafx.scene.control.Button;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.input.KeyEvent;
@@ -47,6 +48,8 @@ public class HelloController {
 
     @FXML
     private Pane gameArea;
+    
+    private Button replayButton;
 
     @FXML
     public void initialize() {
@@ -77,6 +80,13 @@ public class HelloController {
         if(gameData != null) {
             gameStatusLabel = gameData.statusLabel;
             gameArea = gameData.gameArea;
+            replayButton = gameData.replayButton;
+            
+            // Configurer le bouton Rejouer
+            if(replayButton != null) {
+                replayButton.setOnAction(e -> handleReplay());
+            }
+            
             createBoard();
         }
     }
@@ -273,6 +283,11 @@ public class HelloController {
             // Afficher un message de victoire
             gameStatusLabel.setText("🏆 VICTOIRE ! Le joueur " + winner + " a gagné ! 🏆");
             gameStatusLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: gold;");
+            
+            // Afficher le bouton Rejouer
+            if(replayButton != null) {
+                replayButton.setVisible(true);
+            }
             
             // Envoyer la notification de fin de jeu à l'adversaire
             if(isHost) {
@@ -565,10 +580,33 @@ public class HelloController {
         gameStatusLabel.setText("🏆 VICTOIRE ! Le joueur " + winner + " a gagné ! 🏆");
         gameStatusLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: gold;");
         
+        // Afficher le bouton Rejouer
+        if(replayButton != null) {
+            replayButton.setVisible(true);
+        }
+        
         // Arrêter seulement la boucle de jeu
         if(gameLoop != null) {
             gameLoop.stop();
         }
+    }
+    
+    private void handleReplay() {
+        // Cacher le bouton Rejouer
+        if(replayButton != null) {
+            replayButton.setVisible(false);
+        }
+        
+        // Réinitialiser le label de statut
+        String playerSide = isHost ? "blanc (bas)" : "noir (haut)";
+        gameStatusLabel.setText("Jeu prêt ! Vous jouez " + playerSide + ". Utilisez les flèches.");
+        gameStatusLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: black;");
+        
+        // Nettoyer le plateau actuel
+        gameArea.getChildren().clear();
+        
+        // Recréer le plateau et redémarrer le jeu
+        createBoard();
     }
     
     public void cleanup() {

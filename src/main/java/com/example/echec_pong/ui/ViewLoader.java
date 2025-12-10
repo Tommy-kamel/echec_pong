@@ -82,8 +82,9 @@ public class ViewLoader {
 
             Label gameStatusLabel = (Label) root.lookup("#gameStatusLabel");
             Pane gameArea = (Pane) root.lookup("#gameArea");
+            Button replayButton = (Button) root.lookup("#replayButton");
 
-            return new GameViewData(gameStatusLabel, gameArea);
+            return new GameViewData(gameStatusLabel, gameArea, replayButton);
         } catch (IOException e) {
             e.printStackTrace();
             return null;
