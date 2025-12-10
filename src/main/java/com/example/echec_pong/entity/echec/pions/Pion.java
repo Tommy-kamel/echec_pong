@@ -1,6 +1,6 @@
 package com.example.echec_pong.entity.echec.pions;
 
-public abstract class Pion {
+public class Pion {
     private String symbol;
     private String nom;
     private int position;
@@ -11,6 +11,10 @@ public abstract class Pion {
         this.nom = nom;
         this.position = position;
         this.point_de_vie = point_de_vie;
+    }
+
+    public Pion(String couleur, int position, int vie) {
+        this(couleur.equals("blanc") ? "♙" : "♟", "Pion", position, vie);
     }
 
     public String getSymbol() {

@@ -1,5 +1,5 @@
 package com.example.echec_pong.entity.pong.terrain;
-import com.example.echec_pong.entity.pong.Raquette;
+import com.example.echec_pong.entity.pong.accessoires.Raquette;
 import com.example.echec_pong.entity.pong.accessoires.Balle;
 import java.util.List;
 
