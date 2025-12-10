@@ -81,6 +81,17 @@ public class CollisionDetector {
     }
     
     /**
+     * Vérifie collision balle avec haut/bas pour rebond
+     */
+    public boolean checkBallTopBottomCollision() {
+        double ballY = gameState.getBalle().getPositionY();
+        double ballRadius = gameState.getBalle().getRayon();
+        double boardHeight = gameState.getBoardRows() * gameState.getCellSize();
+        
+        return ballY - ballRadius <= 0 || ballY + ballRadius >= boardHeight;
+    }
+    
+    /**
      * Vérifie si la balle sort du terrain (haut/bas)
      */
     public String checkBallOutOfBounds() {
@@ -98,14 +109,20 @@ public class CollisionDetector {
     }
     
     /**
-     * Vérifie si le roi d'une équipe est mort
+     * Vérifie si le roi d'une équipe est mort (complètement retiré du jeu)
      */
     public boolean checkKingDeath(String couleur) {
         for(Pion piece : gameState.getAllPieces()) {
             if(piece instanceof Roi && piece.getCouleur().equals(couleur)) {
-                return piece.getSante() <= 0;
+                // Le roi existe avec santé > 0, donc pas mort
+                if(piece.getSante() > 0) {
+                    return false;
+                }
+                // Le roi existe avec santé <= 0, donc mort
+                return true;
             }
         }
-        return false;
+        // Aucun roi trouvé = roi retiré du jeu = mort
+        return true;
     }
 }

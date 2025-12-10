@@ -60,6 +60,19 @@ public class GameState {
         return null;
     }
     
+    public Pion getPieceAtWithCouleurNom(int row, int col, String couleur, String nom) {
+        for(Map.Entry<Pion, GridPosition> entry : piecePositions.entrySet()) {
+            GridPosition pos = entry.getValue();
+            Pion piece = entry.getKey();
+            if(pos.row == row && pos.col == col && 
+               piece.getCouleur().equals(couleur) && 
+               piece.getNom().equals(nom)) {
+                return piece;
+            }
+        }
+        return null;
+    }
+    
     public GridPosition getPosition(Pion piece) {
         return piecePositions.get(piece);
     }
@@ -69,6 +82,7 @@ public class GameState {
     }
     
     public void removePiece(Pion piece) {
+        piecePositions.remove(piece);
         blackMainPieces.remove(piece);
         blackPawns.remove(piece);
         whiteMainPieces.remove(piece);

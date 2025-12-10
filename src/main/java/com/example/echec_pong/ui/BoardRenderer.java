@@ -134,7 +134,6 @@ public class BoardRenderer {
                     Label healthLabel = new Label("HP:" + piece.getSante());
                     healthLabel.setFont(Font.font("System", FontWeight.NORMAL, 10));
                     healthLabel.setTextFill(Color.RED);
-                    
                     // All pieces of the same player have the same color
                     if(row <= 1){
                         // Black player (top) - always black pieces
@@ -185,7 +184,7 @@ public class BoardRenderer {
         double ballRadius = 8;
         double ballX = (width * CELL_SIZE) / 2;
         double ballY = (BOARD_ROWS * CELL_SIZE) / 2;
-        Balle balle = new Balle(ballX, ballY, 3, 3, ballRadius);
+        Balle balle = new Balle(ballX, ballY, 1, 1, ballRadius);
         Circle ballCircle = new Circle(ballRadius);
         ballCircle.setFill(Color.RED);
         ballCircle.setCenterX(ballX);
@@ -215,7 +214,7 @@ public class BoardRenderer {
                     }
                 }
             }
-            // Rotate paddles and ball back
+            // Rotate paddles back (ball doesn't need rotation as it's a circle)
             blackPaddleRect.setRotate(180);
             whitePaddleRect.setRotate(180);
         }

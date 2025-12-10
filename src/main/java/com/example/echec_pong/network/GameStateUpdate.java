@@ -28,9 +28,11 @@ public class GameStateUpdate implements Serializable {
     private int pieceRow;
     private int pieceCol;
     private int pieceHealth;
+    private String pieceCouleur; // "blanc" ou "noir"
+    private String pieceNom;     // "Pion", "Tour", "Cavalier", etc.
     
     // Game over data
-    private String winner;
+    private String winner; 
     
     public GameStateUpdate(UpdateType type) {
         this.type = type;
@@ -53,10 +55,12 @@ public class GameStateUpdate implements Serializable {
         return update;
     }
     
-    public static GameStateUpdate pieceHit(int row, int col, int health) {
+    public static GameStateUpdate pieceHit(int row, int col, String couleur, String nom, int health) {
         GameStateUpdate update = new GameStateUpdate(UpdateType.PIECE_HIT);
         update.pieceRow = row;
         update.pieceCol = col;
+        update.pieceCouleur = couleur;
+        update.pieceNom = nom;
         update.pieceHealth = health;
         return update;
     }
@@ -78,5 +82,7 @@ public class GameStateUpdate implements Serializable {
     public int getPieceRow() { return pieceRow; }
     public int getPieceCol() { return pieceCol; }
     public int getPieceHealth() { return pieceHealth; }
+    public String getPieceCouleur() { return pieceCouleur; }
+    public String getPieceNom() { return pieceNom; }
     public String getWinner() { return winner; }
 }

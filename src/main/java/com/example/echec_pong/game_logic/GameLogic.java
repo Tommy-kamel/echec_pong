@@ -9,6 +9,11 @@ public class GameLogic {
     private final int boardWidth;
     private boolean ballMoving;
     
+    // Cooldowns to prevent multiple rapid collisions
+    private int paddleCollisionCooldown = 0;
+    private int pieceCollisionCooldown = 0;
+    private static final int COLLISION_COOLDOWN_FRAMES = 10;
+    
     // Callback pour notifier les changements de santé
     private PieceHitCallback pieceHitCallback;
     
@@ -36,21 +41,31 @@ public class GameLogic {
             return;
         }
         
+        // Décrémenter les cooldowns
+        if(paddleCollisionCooldown > 0) paddleCollisionCooldown--;
+        if(pieceCollisionCooldown > 0) pieceCollisionCooldown--;
+        
         // Déplacer la balle
         gameState.getBalle().deplacer();
         
-        // Vérifier collision balle-pion
-        Pion hitPiece = collisionDetector.checkBallPieceCollision();
-        if(hitPiece != null) {
-            handlePieceHit(hitPiece);
+        // Vérifier collision balle-pion (avec cooldown)
+        if(pieceCollisionCooldown == 0) {
+            Pion hitPiece = collisionDetector.checkBallPieceCollision();
+            if(hitPiece != null) {
+                handlePieceHit(hitPiece);
+                pieceCollisionCooldown = COLLISION_COOLDOWN_FRAMES;
+            }
         }
         
-        // Vérifier collision balle-raquettes
-        if(collisionDetector.checkBallPaddleCollision(true)) {
-            gameState.getBalle().inverserVitesseY();
-        }
-        if(collisionDetector.checkBallPaddleCollision(false)) {
-            gameState.getBalle().inverserVitesseY();
+        // Vérifier collision balle-raquettes (avec cooldown et séparation)
+        if(paddleCollisionCooldown == 0) {
+            if(collisionDetector.checkBallPaddleCollision(true)) {
+                handlePaddleBounce(true);
+                paddleCollisionCooldown = COLLISION_COOLDOWN_FRAMES;
+            } else if(collisionDetector.checkBallPaddleCollision(false)) {
+                handlePaddleBounce(false);
+                paddleCollisionCooldown = COLLISION_COOLDOWN_FRAMES;
+            }
         }
         
         // Vérifier collision balle-murs
@@ -58,14 +73,34 @@ public class GameLogic {
             gameState.getBalle().inverserVitesseX();
         }
         
-        // Vérifier sortie de terrain
-        String scorer = collisionDetector.checkBallOutOfBounds();
-        if(scorer != null) {
-            resetBall();
+        // Vérifier collision haut/bas - rebondir au lieu de téléporter
+        if(collisionDetector.checkBallTopBottomCollision()) {
+            gameState.getBalle().inverserVitesseY();
         }
         
         // Vérifier victoire
         checkWinCondition();
+    }
+    
+    /**
+     * Gère le rebond sur une raquette
+     */
+    private void handlePaddleBounce(boolean isBlackPaddle) {
+        // Inverser vitesse Y
+        gameState.getBalle().inverserVitesseY();
+        
+        // Séparer la balle de la raquette pour éviter qu'elle ne colle
+        double separationDistance = 3.0;
+        if(isBlackPaddle) {
+            // Raquette noire en haut - pousser la balle vers le bas
+            double paddleBottom = gameState.getRaquetteNoir().getPositionY() + 
+                                 gameState.getRaquetteNoir().getHauteur();
+            gameState.getBalle().setPositionY(paddleBottom + gameState.getBalle().getRayon() + separationDistance);
+        } else {
+            // Raquette blanche en bas - pousser la balle vers le haut
+            double paddleTop = gameState.getRaquetteBlanc().getPositionY();
+            gameState.getBalle().setPositionY(paddleTop - gameState.getBalle().getRayon() - separationDistance);
+        }
     }
     
     /**
@@ -74,16 +109,17 @@ public class GameLogic {
     private void handlePieceHit(Pion piece) {
         piece.setSante(piece.getSante() - 1);
         
-        if(piece.getSante() <= 0) {
-            gameState.removePiece(piece);
+        // Get position BEFORE removing the piece
+        GameState.GridPosition pos = gameState.getPiecePosition(piece);
+        
+        // Notifier le callback AVANT de retirer la pièce (pour que le client sache)
+        if (pieceHitCallback != null && pos != null) {
+            pieceHitCallback.onPieceHit(piece, pos.row, pos.col, piece.getSante());
         }
         
-        // Notifier le callback si défini
-        if (pieceHitCallback != null) {
-            GameState.GridPosition pos = gameState.getPiecePosition(piece);
-            if (pos != null) {
-                pieceHitCallback.onPieceHit(piece, pos.row, pos.col, piece.getSante());
-            }
+        // Retirer la pièce si HP <= 0
+        if(piece.getSante() <= 0) {
+            gameState.removePiece(piece);
         }
         
         // Inverser direction balle
@@ -94,12 +130,20 @@ public class GameLogic {
      * Vérifie condition de victoire
      */
     private void checkWinCondition() {
-        if(collisionDetector.checkKingDeath("noir")) {
-            gameState.setGameOver(true);
-            gameState.setWinner("blanc");
-        } else if(collisionDetector.checkKingDeath("blanc")) {
-            gameState.setGameOver(true);
-            gameState.setWinner("noir");
+        // Ne vérifier que si le jeu n'est pas déjà terminé
+        if(!gameState.isGameOver()) {
+            boolean blackKingDead = collisionDetector.checkKingDeath("noir");
+            boolean whiteKingDead = collisionDetector.checkKingDeath("blanc");
+            
+            if(blackKingDead) {
+                gameState.setGameOver(true);
+                gameState.setWinner("Blanc");
+                ballMoving = false;
+            } else if(whiteKingDead) {
+                gameState.setGameOver(true);
+                gameState.setWinner("Noir");
+                ballMoving = false;
+            }
         }
     }
     
@@ -111,7 +155,7 @@ public class GameLogic {
         double centerY = (gameState.getBoardRows() * gameState.getCellSize()) / 2;
         gameState.getBalle().setPositionX(centerX);
         gameState.getBalle().setPositionY(centerY);
-        ballMoving = false;
+        // Don't stop the ball - let it continue playing
     }
     
     /**

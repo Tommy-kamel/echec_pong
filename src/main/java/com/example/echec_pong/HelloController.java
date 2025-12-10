@@ -19,6 +19,7 @@ import com.example.echec_pong.ui.GameViewData;
 import com.example.echec_pong.ui.GameRenderData;
 import com.example.echec_pong.entity.echec.pions.Pion;
 import com.example.echec_pong.game_logic.GameLogic;
+import com.example.echec_pong.game_logic.GameState;
 import com.example.echec_pong.network.GameStateUpdate;
 
 public class HelloController {
@@ -39,6 +40,7 @@ public class HelloController {
     private Map<Pion, Label> healthLabels;
     private GameRenderData renderData;
     private volatile boolean networkRunning = true;
+    private int ballStateReceived = 0; // Compteur pour debug
 
     @FXML
     private Label gameStatusLabel;
@@ -126,16 +128,39 @@ public class HelloController {
             return;
         }
 
-        width = Integer.parseInt(data.widthField.getText());
-        height = width + 2;
-        pionHealth = Integer.parseInt(data.pionHealth.getText());
-        cavalierHealth = Integer.parseInt(data.cavalierHealth.getText());
-        fouHealth = Integer.parseInt(data.fouHealth.getText());
-        tourHealth = Integer.parseInt(data.tourHealth.getText());
-        dameHealth = Integer.parseInt(data.dameHealth.getText());
-        roiHealth = Integer.parseInt(data.roiHealth.getText());
-        String firstServe = data.firstServeField.getText();
-        blackStarts = firstServe.equalsIgnoreCase("host");
+        // Valider que tous les champs sont remplis
+        String firstServe;
+        try {
+            String widthText = data.widthField.getText().trim();
+            String pionHealthText = data.pionHealth.getText().trim();
+            String cavalierHealthText = data.cavalierHealth.getText().trim();
+            String fouHealthText = data.fouHealth.getText().trim();
+            String tourHealthText = data.tourHealth.getText().trim();
+            String dameHealthText = data.dameHealth.getText().trim();
+            String roiHealthText = data.roiHealth.getText().trim();
+            String firstServeText = data.firstServeField.getText().trim();
+            
+            if (widthText.isEmpty() || pionHealthText.isEmpty() || cavalierHealthText.isEmpty() ||
+                fouHealthText.isEmpty() || tourHealthText.isEmpty() || dameHealthText.isEmpty() ||
+                roiHealthText.isEmpty() || firstServeText.isEmpty()) {
+                data.statusLabel.setText("Veuillez remplir tous les champs !");
+                return;
+            }
+            
+            width = Integer.parseInt(widthText);
+            height = width + 2;
+            pionHealth = Integer.parseInt(pionHealthText);
+            cavalierHealth = Integer.parseInt(cavalierHealthText);
+            fouHealth = Integer.parseInt(fouHealthText);
+            tourHealth = Integer.parseInt(tourHealthText);
+            dameHealth = Integer.parseInt(dameHealthText);
+            roiHealth = Integer.parseInt(roiHealthText);
+            firstServe = firstServeText;
+            blackStarts = firstServe.equalsIgnoreCase("host");
+        } catch (NumberFormatException e) {
+            data.statusLabel.setText("Erreur : Entrez des nombres valides !");
+            return;
+        }
 
         try {
             out.writeInt(width);
@@ -163,7 +188,8 @@ public class HelloController {
         // Setup callback for piece hits (only host sends updates)
         if (isHost) {
             gameLogic.setPieceHitCallback((piece, row, col, newHealth) -> {
-                sendPieceHit(row, col, newHealth);
+                System.out.println("[HOST] Callback PIECE_HIT: pièce=" + piece.getCouleur() + " " + piece.getNom() + " row=" + row + " col=" + col + " HP=" + newHealth);
+                sendPieceHit(row, col, piece.getCouleur(), piece.getNom(), newHealth);
             });
         }
         
@@ -175,7 +201,7 @@ public class HelloController {
         startGameLoop(renderData);
         setupKeyboardControls();
         
-        String playerSide = isHost ? "noir (haut)" : "blanc (bas)";
+        String playerSide = isHost ? "blanc (bas)" : "noir (haut)";
         gameStatusLabel.setText("Jeu prêt ! Vous jouez " + playerSide + ". Utilisez les flèches.");
     }
     
@@ -191,8 +217,8 @@ public class HelloController {
                     gameLogic.update();
                     
                     // Send ball state to client periodically (moins fréquent)
-                    if (now - lastNetworkUpdate > NETWORK_UPDATE_INTERVAL) {
-                        new Thread(() -> sendBallState()).start();
+                    if (networkRunning && now - lastNetworkUpdate > NETWORK_UPDATE_INTERVAL) {
+                        sendBallState();
                         lastNetworkUpdate = now;
                     }
                 }
@@ -211,57 +237,90 @@ public class HelloController {
         renderData.whitePaddleRect.setLayoutX(gameLogic.getGameState().getRaquetteBlanc().getPositionX());
         renderData.whitePaddleRect.setLayoutY(gameLogic.getGameState().getRaquetteBlanc().getPositionY());
         
-        // Update ball position
+        // Update ball position - CSS rotation handles client transformation automatically
         renderData.ballCircle.setCenterX(gameLogic.getGameState().getBalle().getPositionX());
         renderData.ballCircle.setCenterY(gameLogic.getGameState().getBalle().getPositionY());
         
-        // Update health labels
+        // Update health labels - MUST run on both HOST and CLIENT to reflect health changes
         for (Map.Entry<Pion, Label> entry : healthLabels.entrySet()) {
             Pion piece = entry.getKey();
             Label healthLabel = entry.getValue();
-            healthLabel.setText("HP:" + piece.getHealth());
             
-            // Hide pieces with 0 health
-            if (piece.getHealth() <= 0) {
+            // Check if piece still exists in game state
+            boolean pieceExists = gameLogic.getGameState().getAllPieces().contains(piece);
+            
+            if (!pieceExists || piece.getSante() <= 0) {
+                // Hide pieces that are removed or have 0 health
                 healthLabel.setVisible(false);
                 healthLabel.getParent().setVisible(false);
+            } else {
+                // Update health display for existing pieces - this SHOULD update the label text
+                int currentHealth = piece.getSante();
+                String newText = "HP:" + currentHealth;
+                if (!healthLabel.getText().equals(newText)) {
+                    healthLabel.setText(newText);
+                }
+                healthLabel.setVisible(true);
+                healthLabel.getParent().setVisible(true);
             }
         }
     }
     
     private void checkWinCondition() {
         if (gameLogic.getGameState().isGameOver()) {
-            gameLoop.stop();
             String winner = gameLogic.getGameState().getWinner();
-            gameStatusLabel.setText("Jeu terminé ! " + winner + " a gagné !");
+            
+            // Afficher un message de victoire
+            gameStatusLabel.setText("🏆 VICTOIRE ! Le joueur " + winner + " a gagné ! 🏆");
+            gameStatusLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: gold;");
+            
+            // Envoyer la notification de fin de jeu à l'adversaire
+            if(isHost) {
+                sendGameOver(winner);
+            }
+            
+            // Arrêter seulement la boucle de jeu, garder le réseau actif
+            if (gameLoop != null) {
+                gameLoop.stop();
+            }
         }
     }
     
     private void setupKeyboardControls() {
-        gameArea.setFocusTraversable(true);
-        gameArea.requestFocus();
-        
-        gameArea.setOnKeyPressed(this::handleKeyPressed);
-        gameArea.setOnKeyReleased(this::handleKeyReleased);
+        // Attacher les événements clavier à la scène pour capturer tous les événements
+        Platform.runLater(() -> {
+            if (gameArea.getScene() != null) {
+                gameArea.getScene().setOnKeyPressed(this::handleKeyPressed);
+                gameArea.getScene().setOnKeyReleased(this::handleKeyReleased);
+                System.out.println((isHost ? "[HOST] " : "[CLIENT] ") + "Listeners clavier attachés à la scène");
+            } else {
+                System.err.println((isHost ? "[HOST] " : "[CLIENT] ") + "ERREUR: Scène non disponible !");
+            }
+        });
     }
     
     private void handleKeyPressed(KeyEvent event) {
+        System.out.println((isHost ? "[HOST] " : "[CLIENT] ") + "Touche pressée: " + event.getCode());
         switch (event.getCode()) {
             case LEFT:
                 if (isHost) {
-                    gameLogic.moveBlackPaddleLeft();
+                    // Host contrôle la raquette blanche (bas de son écran)
+                    gameLogic.moveWhitePaddleLeft();
                     sendPaddlePosition();
                 } else {
-                    gameLogic.moveWhitePaddleLeft();
+                    // Client : écran tourné 180°, donc LEFT devient RIGHT dans le modèle
+                    gameLogic.moveBlackPaddleRight();
                     sendPaddlePosition();
                 }
                 break;
             case RIGHT:
                 if (isHost) {
-                    gameLogic.moveBlackPaddleRight();
+                    // Host contrôle la raquette blanche (bas de son écran)
+                    gameLogic.moveWhitePaddleRight();
                     sendPaddlePosition();
                 } else {
-                    gameLogic.moveWhitePaddleRight();
+                    // Client : écran tourné 180°, donc RIGHT devient LEFT dans le modèle
+                    gameLogic.moveBlackPaddleLeft();
                     sendPaddlePosition();
                 }
                 break;
@@ -276,29 +335,37 @@ public class HelloController {
     }
     
     private synchronized void sendPaddlePosition() {
-        if (out == null) return;
+        if (out == null || !networkRunning) {
+            System.out.println((isHost ? "[HOST] " : "[CLIENT] ") + "Envoi annulé: out=" + (out != null) + ", networkRunning=" + networkRunning);
+            return;
+        }
         
         try {
             double x, y;
             if (isHost) {
-                x = gameLogic.getGameState().getRaquetteNoir().getPositionX();
-                y = gameLogic.getGameState().getRaquetteNoir().getPositionY();
-            } else {
+                // Host envoie sa raquette blanche
                 x = gameLogic.getGameState().getRaquetteBlanc().getPositionX();
                 y = gameLogic.getGameState().getRaquetteBlanc().getPositionY();
+            } else {
+                // Client envoie sa raquette noire
+                x = gameLogic.getGameState().getRaquetteNoir().getPositionX();
+                y = gameLogic.getGameState().getRaquetteNoir().getPositionY();
             }
             
             GameStateUpdate update = GameStateUpdate.paddleMove(x, y);
             out.writeObject(update);
             out.flush();
             out.reset(); // Important pour éviter la mise en cache
+            System.out.println((isHost ? "[HOST] " : "[CLIENT] ") + "Envoi PADDLE_MOVE: (" + x + ", " + y + ")");
         } catch (IOException e) {
+            System.err.println((isHost ? "[HOST] " : "[CLIENT] ") + "Erreur envoi position raquette: " + e.getMessage());
             e.printStackTrace();
+            networkRunning = false;
         }
     }
     
     private synchronized void sendBallState() {
-        if (out == null || !isHost) return;
+        if (out == null || !isHost || !networkRunning) return;
         
         try {
             double x = gameLogic.getGameState().getBalle().getPositionX();
@@ -311,99 +378,227 @@ public class HelloController {
             out.flush();
             out.reset(); // Important pour éviter la mise en cache
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Erreur envoi état balle: " + e.getMessage());
+            networkRunning = false;
         }
     }
     
-    private synchronized void sendPieceHit(int row, int col, int newHealth) {
-        if (out == null || !isHost) return;
+    private synchronized void sendPieceHit(int row, int col, String couleur, String nom, int newHealth) {
+        if (out == null || !isHost || !networkRunning) return;
         
         try {
-            GameStateUpdate update = GameStateUpdate.pieceHit(row, col, newHealth);
+            System.out.println("[HOST] Envoi PIECE_HIT: row=" + row + " col=" + col + " couleur=" + couleur + " nom=" + nom + " HP=" + newHealth);
+            GameStateUpdate update = GameStateUpdate.pieceHit(row, col, couleur, nom, newHealth);
             out.writeObject(update);
             out.flush();
             out.reset();
         } catch (IOException e) {
+            System.err.println((isHost ? "[HOST] " : "[CLIENT] ") + "Erreur envoi pièce touchée: " + e.getMessage());
             e.printStackTrace();
+            networkRunning = false;
+        }
+    }
+    
+    private synchronized void sendGameOver(String winner) {
+        if (out == null || !isHost || !networkRunning) return;
+        
+        try {
+            GameStateUpdate update = GameStateUpdate.gameOver(winner);
+            out.writeObject(update);
+            out.flush();
+            out.reset();
+        } catch (IOException e) {
+            System.err.println("Erreur envoi fin de jeu: " + e.getMessage());
         }
     }
     
     private void startNetworkListener() {
         new Thread(() -> {
+            System.out.println((isHost ? "[HOST] " : "[CLIENT] ") + "Network listener démarré");
             while (networkRunning) {
                 try {
                     GameStateUpdate update = (GameStateUpdate) in.readObject();
+                    // Ne logger que les messages importants (pas BALL_STATE)
+                    if (update.getType() != GameStateUpdate.UpdateType.BALL_STATE) {
+                        System.out.println((isHost ? "[HOST] " : "[CLIENT] ") + "Message reçu: " + update.getType());
+                    }
                     
                     Platform.runLater(() -> {
-                        switch (update.getType()) {
-                            case PADDLE_MOVE:
-                                handleRemotePaddleMove(update);
-                                break;
-                            case BALL_STATE:
-                                handleRemoteBallState(update);
-                                break;
-                            case PIECE_HIT:
-                                handleRemotePieceHit(update);
-                                break;
-                            case GAME_OVER:
-                                handleRemoteGameOver(update);
-                                break;
+                        try {
+                            switch (update.getType()) {
+                                case PADDLE_MOVE:
+                                    handleRemotePaddleMove(update);
+                                    break;
+                                case BALL_STATE:
+                                    handleRemoteBallState(update);
+                                    break;
+                                case PIECE_HIT:
+                                    handleRemotePieceHit(update);
+                                    break;
+                                case GAME_OVER:
+                                    handleRemoteGameOver(update);
+                                    break;
+                            }
+                        } catch (Exception e) {
+                            System.err.println((isHost ? "[HOST] " : "[CLIENT] ") + "Exception dans handler: " + e.getMessage());
+                            e.printStackTrace();
                         }
                     });
+                } catch (EOFException e) {
+                    // Connexion fermée proprement, arrêter silencieusement
+                    System.out.println((isHost ? "[HOST] " : "[CLIENT] ") + "Connexion fermée");
+                    break;
                 } catch (IOException | ClassNotFoundException e) {
                     if (networkRunning) {
+                        System.err.println((isHost ? "[HOST] " : "[CLIENT] ") + "Erreur réseau: " + e.getMessage());
                         e.printStackTrace();
                     }
                     break;
                 }
             }
+            System.out.println((isHost ? "[HOST] " : "[CLIENT] ") + "Network listener arrêté");
         }).start();
     }
     
     private void handleRemotePaddleMove(GameStateUpdate update) {
+        System.out.println((isHost ? "[HOST] " : "[CLIENT] ") + "Réception PADDLE_MOVE: (" + update.getPaddleX() + ", " + update.getPaddleY() + ")");
         if (isHost) {
-            // Host receives white paddle moves from client
-            gameLogic.getGameState().getRaquetteBlanc().setPositionX(update.getPaddleX());
-            gameLogic.getGameState().getRaquetteBlanc().setPositionY(update.getPaddleY());
-        } else {
-            // Client receives black paddle moves from host
+            // Host reçoit les mouvements de la raquette noire du client
             gameLogic.getGameState().getRaquetteNoir().setPositionX(update.getPaddleX());
             gameLogic.getGameState().getRaquetteNoir().setPositionY(update.getPaddleY());
+        } else {
+            // Client reçoit les mouvements de la raquette blanche de l'host
+            gameLogic.getGameState().getRaquetteBlanc().setPositionX(update.getPaddleX());
+            gameLogic.getGameState().getRaquetteBlanc().setPositionY(update.getPaddleY());
         }
     }
     
     private void handleRemoteBallState(GameStateUpdate update) {
         if (!isHost) {
             // Only client receives ball state from host
-            gameLogic.getGameState().getBalle().setPositionX(update.getBallX());
-            gameLogic.getGameState().getBalle().setPositionY(update.getBallY());
-            gameLogic.getGameState().getBalle().setVitesseX(update.getBallVelX());
-            gameLogic.getGameState().getBalle().setVitesseY(update.getBallVelY());
+            try {
+                ballStateReceived++;
+                if (ballStateReceived % 30 == 0) {
+                    System.out.println("[CLIENT] BALL_STATE reçus: " + ballStateReceived + " - Position: (" + update.getBallX() + ", " + update.getBallY() + ")");
+                }
+                
+                // Don't transform - boardContainer rotation handles coordinate transformation automatically
+                gameLogic.getGameState().getBalle().setPositionX(update.getBallX());
+                gameLogic.getGameState().getBalle().setPositionY(update.getBallY());
+                gameLogic.getGameState().getBalle().setVitesseX(update.getBallVelX());
+                gameLogic.getGameState().getBalle().setVitesseY(update.getBallVelY());
+            } catch (Exception e) {
+                System.err.println("[CLIENT] Erreur lors de la mise à jour de la balle: " + e.getMessage());
+                e.printStackTrace();
+            }
         }
     }
     
     private void handleRemotePieceHit(GameStateUpdate update) {
         if (!isHost) {
-            // Client receives piece hit updates from host
-            int row = update.getPieceRow();
-            int col = update.getPieceCol();
-            int newHealth = update.getPieceHealth();
-            
-            // Find the piece at this position and update its health
-            Pion piece = gameLogic.getGameState().getPieceAt(row, col);
-            if (piece != null) {
-                piece.setSante(newHealth);
+            try {
+                // Client receives piece hit updates from host
+                int row = update.getPieceRow();
+                int col = update.getPieceCol();
+                String couleur = update.getPieceCouleur();
+                String nom = update.getPieceNom();
+                int newHealth = update.getPieceHealth();
                 
-                // Remove piece if health is 0
-                if (newHealth <= 0) {
-                    gameLogic.getGameState().removePiece(piece);
+                System.out.println("[CLIENT] PIECE_HIT reçu: row=" + row + " col=" + col + " couleur=" + couleur + " nom=" + nom + " HP=" + newHealth);
+                System.out.println("[CLIENT] healthLabels map size: " + healthLabels.size());
+                
+                // Find the EXACT piece at this position with the matching couleur and nom
+                Pion piece = gameLogic.getGameState().getPieceAtWithCouleurNom(row, col, couleur, nom);
+                if (piece != null) {
+                    System.out.println("[CLIENT] Pièce trouvée: " + piece + " (hashCode=" + piece.hashCode() + ")");
+                    
+                    piece.setSante(newHealth);
+                    System.out.println("[CLIENT] Mise à jour pièce " + couleur + " " + nom + " à (" + row + "," + col + ") HP: " + newHealth);
+                    
+                    // Check if piece is in healthLabels map
+                    Label healthLabel = healthLabels.get(piece);
+                    System.out.println("[CLIENT] healthLabel trouvé dans map: " + (healthLabel != null));
+                    
+                    if (healthLabel != null) {
+                        // Force update the health label immediately on the JavaFX thread
+                        Platform.runLater(() -> {
+                            healthLabel.setText("HP:" + newHealth);
+                            System.out.println("[CLIENT] Label mis à jour: HP:" + newHealth);
+                        });
+                    } else {
+                        // Debug: print all keys in the map
+                        System.out.println("[CLIENT] DEBUG: Pièce NON trouvée dans healthLabels. Clés dans la map:");
+                        for (Pion p : healthLabels.keySet()) {
+                            System.out.println("  - " + p.getCouleur() + " " + p.getNom() + " (hashCode=" + p.hashCode() + ")");
+                        }
+                    }
+                    
+                    // Remove piece if health is 0
+                    if (newHealth <= 0) {
+                        gameLogic.getGameState().removePiece(piece);
+                        System.out.println("[CLIENT] Pièce " + couleur + " " + nom + " retirée");
+                        
+                        // Hide the piece visually
+                        if (healthLabel != null) {
+                            Platform.runLater(() -> {
+                                if (healthLabel.getParent() != null) {
+                                    healthLabel.setVisible(false);
+                                    healthLabel.getParent().setVisible(false);
+                                }
+                            });
+                        }
+                    }
+                } else {
+                    System.err.println("[CLIENT] ERREUR: Pièce " + couleur + " " + nom + " non trouvée à (" + row + "," + col + ")");
                 }
+            } catch (Exception e) {
+                System.err.println("[CLIENT] Exception dans handleRemotePieceHit: " + e.getMessage());
+                e.printStackTrace();
             }
         }
     }
     
     private void handleRemoteGameOver(GameStateUpdate update) {
-        gameLoop.stop();
-        gameStatusLabel.setText("Jeu terminé ! " + update.getWinner() + " a gagné !");
+        gameLogic.getGameState().setGameOver(true);
+        
+        String winner = update.getWinner();
+        gameStatusLabel.setText("🏆 VICTOIRE ! Le joueur " + winner + " a gagné ! 🏆");
+        gameStatusLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: gold;");
+        
+        // Arrêter seulement la boucle de jeu
+        if(gameLoop != null) {
+            gameLoop.stop();
+        }
+    }
+    
+    public void cleanup() {
+        networkRunning = false;
+        if (gameLoop != null) {
+            gameLoop.stop();
+        }
+        try {
+            if (out != null) {
+                try {
+                    out.close();
+                } catch (IOException e) {
+                    // Ignorer les erreurs de fermeture
+                }
+            }
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    // Ignorer les erreurs de fermeture
+                }
+            }
+            if (clientSocket != null && !clientSocket.isClosed()) {
+                clientSocket.close();
+            }
+            if (serverSocket != null && !serverSocket.isClosed()) {
+                serverSocket.close();
+            }
+        } catch (IOException e) {
+            // Ignorer les erreurs de fermeture
+        }
     }
 }
