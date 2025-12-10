@@ -27,6 +27,11 @@ public class GameState {
     private boolean isGameOver;
     private String winner;
     
+    // Service state
+    private String currentServer; // "white" or "black"
+    private boolean waitingForServe;
+    private double serveAngle; // Angle en degrés: -45 (gauche), 0 (centre), 45 (droite)
+    
     public GameState(int boardWidth) {
         this.boardWidth = boardWidth;
         this.blackMainPieces = new ArrayList<>();
@@ -35,6 +40,8 @@ public class GameState {
         this.whitePawns = new ArrayList<>();
         this.piecePositions = new HashMap<>();
         this.isGameOver = false;
+        this.waitingForServe = true;
+        this.serveAngle = 0.0; // default au centre
     }
     
     public void addPiece(Pion piece, int row, int col) {
@@ -131,6 +138,15 @@ public class GameState {
     
     public String getWinner() { return winner; }
     public void setWinner(String winner) { this.winner = winner; }
+    
+    public String getCurrentServer() { return currentServer; }
+    public void setCurrentServer(String server) { this.currentServer = server; }
+    
+    public boolean isWaitingForServe() { return waitingForServe; }
+    public void setWaitingForServe(boolean waiting) { this.waitingForServe = waiting; }
+    
+    public double getServeAngle() { return serveAngle; }
+    public void setServeAngle(double angle) { this.serveAngle = angle; }
     
     public static class GridPosition {
         public final int row;

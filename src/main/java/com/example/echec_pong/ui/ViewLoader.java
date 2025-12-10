@@ -3,6 +3,7 @@ package com.example.echec_pong.ui;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Pane;
@@ -46,13 +47,19 @@ public class ViewLoader {
             TextField tourHealth = (TextField) root.lookup("#tourHealth");
             TextField dameHealth = (TextField) root.lookup("#dameHealth");
             TextField roiHealth = (TextField) root.lookup("#roiHealth");
-            TextField firstServeField = (TextField) root.lookup("#firstServeField");
+            ComboBox<String> firstServeCombo = (ComboBox<String>) root.lookup("#firstServeCombo");
             Label statusLabel = (Label) root.lookup("#statusLabel");
             Button startButton = (Button) root.lookup("#startButton");
+            
+            // Initialiser le ComboBox
+            if(firstServeCombo != null) {
+                firstServeCombo.getItems().addAll("Blanc (Hôte)", "Noir (Client)");
+                firstServeCombo.setValue("Blanc (Hôte)");
+            }
 
             HostSettingsData data = new HostSettingsData(widthField, pionHealth, cavalierHealth, 
                                                          fouHealth, tourHealth, dameHealth, 
-                                                         roiHealth, firstServeField, statusLabel);
+                                                         roiHealth, firstServeCombo, statusLabel);
 
             startButton.setOnAction(e -> onStartGame.accept(data));
             onServerStart.accept(statusLabel);
