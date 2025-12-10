@@ -64,13 +64,20 @@ public class ViewLoader {
         }
     }
     
-    public static void loadClientWaiting(StackPane mainContainer) {
+    public static ClientWaitingData loadClientWaiting(StackPane mainContainer) {
         try {
             FXMLLoader loader = new FXMLLoader(ViewLoader.class.getResource("/com/example/echec_pong/ClientWaiting.fxml"));
             Node root = loader.load();
             mainContainer.getChildren().setAll(root);
+            
+            TextField serverIpField = (TextField) root.lookup("#serverIpField");
+            Button connectButton = (Button) root.lookup("#connectButton");
+            Label statusLabel = (Label) root.lookup("#statusLabel");
+            
+            return new ClientWaitingData(serverIpField, connectButton, statusLabel);
         } catch (IOException e) {
             e.printStackTrace();
+            return null;
         }
     }
     

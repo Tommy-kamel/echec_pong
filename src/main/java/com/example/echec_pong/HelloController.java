@@ -18,6 +18,7 @@ import com.example.echec_pong.ui.BoardRenderer;
 import com.example.echec_pong.ui.HostSettingsData;
 import com.example.echec_pong.ui.GameViewData;
 import com.example.echec_pong.ui.GameRenderData;
+import com.example.echec_pong.ui.ClientWaitingData;
 import com.example.echec_pong.entity.echec.pions.Pion;
 import com.example.echec_pong.game_logic.GameLogic;
 import com.example.echec_pong.game_logic.GameState;
@@ -64,7 +65,6 @@ public class HelloController {
     private void choisirClient() {
         isHost = false;
         loadClientWaiting();
-        connectAsClient();
     }
 
     private void loadHostSettings() {
@@ -72,7 +72,18 @@ public class HelloController {
     }
 
     private void loadClientWaiting() {
-        ViewLoader.loadClientWaiting(mainContainer);
+        ClientWaitingData clientData = ViewLoader.loadClientWaiting(mainContainer);
+        if(clientData != null) {
+            clientData.connectButton.setOnAction(e -> {
+                String serverIp = clientData.serverIpField.getText().trim();
+                if(serverIp.isEmpty()) {
+                    serverIp = "localhost";
+                }
+                clientData.statusLabel.setText("Connexion à " + serverIp + ":12345...");
+                clientData.connectButton.setDisable(true);
+                connectAsClient(serverIp, clientData.statusLabel);
+            });
+        }
     }
 
     private void loadGame() {
@@ -108,10 +119,12 @@ public class HelloController {
         }).start();
     }
 
-    private void connectAsClient() {
+    private void connectAsClient(String serverIp, Label statusLabel) {
         new Thread(() -> {
             try {
-                clientSocket = new Socket("localhost", 12345);
+                Platform.runLater(() -> statusLabel.setText("Tentative de connexion..."));
+                clientSocket = new Socket(serverIp, 12345);
+                Platform.runLater(() -> statusLabel.setText("Connecté ! Réception des paramètres..."));
                 out = new ObjectOutputStream(clientSocket.getOutputStream());
                 in = new ObjectInputStream(clientSocket.getInputStream());
                 width = in.readInt();
@@ -124,9 +137,16 @@ public class HelloController {
                 roiHealth = in.readInt();
                 String firstServe = in.readUTF();
                 blackStarts = firstServe.equalsIgnoreCase("host");
-                Platform.runLater(() -> loadGame());
+                Platform.runLater(() -> {
+                    statusLabel.setText("Démarrage du jeu...");
+                    loadGame();
+                });
                 startNetworkListener();
             } catch (IOException e) {
+                Platform.runLater(() -> {
+                    statusLabel.setText("❌ Erreur de connexion: " + e.getMessage());
+                    statusLabel.setStyle("-fx-text-fill: red;");
+                });
                 e.printStackTrace();
             }
         }).start();
