@@ -1,0 +1,82 @@
+package com.example.echec_pong.network;
+
+import java.io.Serializable;
+
+public class GameStateUpdate implements Serializable {
+    private static final long serialVersionUID = 1L;
+    
+    public enum UpdateType {
+        PADDLE_MOVE,
+        BALL_STATE,
+        PIECE_HIT,
+        GAME_OVER
+    }
+    
+    private UpdateType type;
+    
+    // Paddle data
+    private double paddleX;
+    private double paddleY;
+    
+    // Ball data
+    private double ballX;
+    private double ballY;
+    private double ballVelX;
+    private double ballVelY;
+    
+    // Piece data
+    private int pieceRow;
+    private int pieceCol;
+    private int pieceHealth;
+    
+    // Game over data
+    private String winner;
+    
+    public GameStateUpdate(UpdateType type) {
+        this.type = type;
+    }
+    
+    // Static factory methods
+    public static GameStateUpdate paddleMove(double x, double y) {
+        GameStateUpdate update = new GameStateUpdate(UpdateType.PADDLE_MOVE);
+        update.paddleX = x;
+        update.paddleY = y;
+        return update;
+    }
+    
+    public static GameStateUpdate ballState(double x, double y, double velX, double velY) {
+        GameStateUpdate update = new GameStateUpdate(UpdateType.BALL_STATE);
+        update.ballX = x;
+        update.ballY = y;
+        update.ballVelX = velX;
+        update.ballVelY = velY;
+        return update;
+    }
+    
+    public static GameStateUpdate pieceHit(int row, int col, int health) {
+        GameStateUpdate update = new GameStateUpdate(UpdateType.PIECE_HIT);
+        update.pieceRow = row;
+        update.pieceCol = col;
+        update.pieceHealth = health;
+        return update;
+    }
+    
+    public static GameStateUpdate gameOver(String winner) {
+        GameStateUpdate update = new GameStateUpdate(UpdateType.GAME_OVER);
+        update.winner = winner;
+        return update;
+    }
+    
+    // Getters
+    public UpdateType getType() { return type; }
+    public double getPaddleX() { return paddleX; }
+    public double getPaddleY() { return paddleY; }
+    public double getBallX() { return ballX; }
+    public double getBallY() { return ballY; }
+    public double getBallVelX() { return ballVelX; }
+    public double getBallVelY() { return ballVelY; }
+    public int getPieceRow() { return pieceRow; }
+    public int getPieceCol() { return pieceCol; }
+    public int getPieceHealth() { return pieceHealth; }
+    public String getWinner() { return winner; }
+}

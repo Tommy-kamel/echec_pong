@@ -46,12 +46,13 @@ public class ViewLoader {
             TextField tourHealth = (TextField) root.lookup("#tourHealth");
             TextField dameHealth = (TextField) root.lookup("#dameHealth");
             TextField roiHealth = (TextField) root.lookup("#roiHealth");
+            TextField firstServeField = (TextField) root.lookup("#firstServeField");
             Label statusLabel = (Label) root.lookup("#statusLabel");
             Button startButton = (Button) root.lookup("#startButton");
 
             HostSettingsData data = new HostSettingsData(widthField, pionHealth, cavalierHealth, 
                                                          fouHealth, tourHealth, dameHealth, 
-                                                         roiHealth, statusLabel);
+                                                         roiHealth, firstServeField, statusLabel);
 
             startButton.setOnAction(e -> onStartGame.accept(data));
             onServerStart.accept(statusLabel);
