@@ -18,6 +18,7 @@ import java.util.List;
 
 public class BoardRenderer {
     private static final double CELL_SIZE = 60.0;
+    private static final int BOARD_ROWS = 8; // Fixe: mêmes espaces que l'échiquier standard
     
     public static void renderBoard(Pane gameArea, int width, int height, 
                                    int pionHealth, int cavalierHealth, int fouHealth, 
@@ -25,7 +26,7 @@ public class BoardRenderer {
         gameArea.getChildren().clear();
 
         double boardWidth = width * CELL_SIZE;
-        double boardHeight = height * CELL_SIZE;
+        double boardHeight = BOARD_ROWS * CELL_SIZE;
 
         GridPane grid = new GridPane();
         grid.setAlignment(Pos.CENTER);
@@ -97,8 +98,8 @@ public class BoardRenderer {
             whitePawns.add(new Pion("blanc", i, pionHealth));
         }
         
-        // Create grid
-        for(int row=0; row<height; row++){
+        // Create grid (toujours 8 rangées pour conserver l'espace standard)
+        for(int row=0; row<BOARD_ROWS; row++){
             for(int col=0; col<width; col++){
                 Rectangle rect = new Rectangle(CELL_SIZE,CELL_SIZE);
                 rect.setFill((row+col)%2==0 ? Color.BEIGE : Color.SADDLEBROWN);
@@ -111,9 +112,9 @@ public class BoardRenderer {
                     piece = blackMainPieces.get(col);
                 }else if(row==1 && col < blackPawns.size()){
                     piece = blackPawns.get(col);
-                }else if(row==height-2 && col < whitePawns.size()){
+                }else if(row==BOARD_ROWS-2 && col < whitePawns.size()){
                     piece = whitePawns.get(col);
-                }else if(row==height-1 && col < whiteMainPieces.size()){
+                }else if(row==BOARD_ROWS-1 && col < whiteMainPieces.size()){
                     piece = whiteMainPieces.get(col);
                 }
                 
@@ -143,7 +144,8 @@ public class BoardRenderer {
         double paddleHeight = 10;
 
         double blackPaddleX = (boardWidth - paddleWidth) / 2;
-        double blackPaddleY = (2 * CELL_SIZE) - (paddleHeight / 2);
+        // Rapproché du rang des pions noirs (haut du rang vide)
+        double blackPaddleY = (2 * CELL_SIZE) + (CELL_SIZE * 0.25) - (paddleHeight / 2);
         Raquette raquetteNoir = new Raquette(blackPaddleX, blackPaddleY, paddleWidth, paddleHeight, "noir");
         Rectangle blackPaddleRect = new Rectangle(paddleWidth, paddleHeight);
         blackPaddleRect.setFill(Color.DARKBLUE);
@@ -153,7 +155,8 @@ public class BoardRenderer {
         blackPaddleRect.setLayoutY(blackPaddleY);
 
         double whitePaddleX = (boardWidth - paddleWidth) / 2;
-        double whitePaddleY = ((height - 2) * CELL_SIZE) - (paddleHeight / 2);
+        // Rapproché du rang des pions blancs (bas du rang vide)
+        double whitePaddleY = ((BOARD_ROWS - 2) * CELL_SIZE) - (CELL_SIZE * 0.25) - (paddleHeight / 2);
         Raquette raquetteBlanc = new Raquette(whitePaddleX, whitePaddleY, paddleWidth, paddleHeight, "blanc");
         Rectangle whitePaddleRect = new Rectangle(paddleWidth, paddleHeight);
         whitePaddleRect.setFill(Color.LIGHTBLUE);
