@@ -40,7 +40,8 @@ public class HelloController {
     
     private GameLogic gameLogic;
     private AnimationTimer gameLoop;
-    private Map<Pion, Label> healthLabels;
+    private Map<Pion, javafx.scene.control.ProgressBar> healthLabels;
+    private Map<Pion, javafx.scene.layout.VBox> pieceContainers;
     private GameRenderData renderData;
     private volatile boolean networkRunning = true;
     private int ballStateReceived = 0; // Compteur pour debug
@@ -222,6 +223,7 @@ public class HelloController {
                                   fouHealth, tourHealth, dameHealth, roiHealth, isHost);
         
         healthLabels = renderData.healthLabels;
+        pieceContainers = renderData.pieceContainers;
         gameLogic = new GameLogic(renderData.gameState, width);
         
         // Setup callback for piece hits (only host sends updates)
@@ -333,27 +335,54 @@ public class HelloController {
             renderData.serveLabel.setVisible(false);
         }
         
-        // Update health labels - MUST run on both HOST and CLIENT to reflect health changes
-        for (Map.Entry<Pion, Label> entry : healthLabels.entrySet()) {
+        // Update health bars - MUST run on both HOST and CLIENT to reflect health changes
+        for (Map.Entry<Pion, javafx.scene.control.ProgressBar> entry : healthLabels.entrySet()) {
             Pion piece = entry.getKey();
-            Label healthLabel = entry.getValue();
+            javafx.scene.control.ProgressBar healthBar = entry.getValue();
             
             // Check if piece still exists in game state
             boolean pieceExists = gameLogic.getGameState().getAllPieces().contains(piece);
             
             if (!pieceExists || piece.getSante() <= 0) {
                 // Hide pieces that are removed or have 0 health
-                healthLabel.setVisible(false);
-                healthLabel.getParent().setVisible(false);
-            } else {
-                // Update health display for existing pieces - this SHOULD update the label text
-                int currentHealth = piece.getSante();
-                String newText = "HP:" + currentHealth;
-                if (!healthLabel.getText().equals(newText)) {
-                    healthLabel.setText(newText);
+                javafx.scene.layout.VBox container = pieceContainers.get(piece);
+                if (container != null) {
+                    container.setVisible(false);
                 }
-                healthLabel.setVisible(true);
-                healthLabel.getParent().setVisible(true);
+            } else {
+                // Update health bar for existing pieces
+                int currentHealth = piece.getSante();
+                int maxHealth = piece.getSanteMax();
+                double healthPercent = (double)currentHealth / maxHealth;
+                
+                healthBar.setProgress(healthPercent);
+                // Update color based on health percentage
+                String barColor = healthPercent > 0.6 ? "#2ecc71" : healthPercent > 0.3 ? "#f39c12" : "#e74c3c";
+                healthBar.setStyle(
+                    "-fx-accent: " + barColor + ";" +
+                    "-fx-control-inner-background: " + barColor + ";" +
+                    "-fx-background-color: linear-gradient(to bottom, derive(" + barColor + ", -20%), " + barColor + ");" +
+                    "-fx-background-insets: 0;" +
+                    "-fx-background-radius: 4;" +
+                    "-fx-padding: 0;" +
+                    "-fx-border-color: rgba(0,0,0,0.4);" +
+                    "-fx-border-width: 1;" +
+                    "-fx-border-radius: 4;"
+                );
+                
+                // Mettre à jour le texte des PV dans le StackPane
+                if (healthBar.getParent() instanceof StackPane) {
+                    StackPane healthContainer = (StackPane) healthBar.getParent();
+                    if (healthContainer.getChildren().size() > 1 && healthContainer.getChildren().get(1) instanceof Label) {
+                        Label healthText = (Label) healthContainer.getChildren().get(1);
+                        healthText.setText(currentHealth + "/" + maxHealth);
+                    }
+                }
+                
+                javafx.scene.layout.VBox container = pieceContainers.get(piece);
+                if (container != null) {
+                    container.setVisible(true);
+                }
             }
         }
     }
@@ -718,14 +747,38 @@ public class HelloController {
                     System.out.println("[CLIENT] Mise à jour pièce " + couleur + " " + nom + " à (" + row + "," + col + ") HP: " + newHealth);
                     
                     // Check if piece is in healthLabels map
-                    Label healthLabel = healthLabels.get(piece);
-                    System.out.println("[CLIENT] healthLabel trouvé dans map: " + (healthLabel != null));
+                    javafx.scene.control.ProgressBar healthBar = healthLabels.get(piece);
+                    System.out.println("[CLIENT] healthBar trouvé dans map: " + (healthBar != null));
                     
-                    if (healthLabel != null) {
-                        // Force update the health label immediately on the JavaFX thread
+                    if (healthBar != null) {
+                        // Force update the health bar immediately on the JavaFX thread
                         Platform.runLater(() -> {
-                            healthLabel.setText("HP:" + newHealth);
-                            System.out.println("[CLIENT] Label mis à jour: HP:" + newHealth);
+                            int maxHealth = piece.getSanteMax();
+                            double healthPercent = (double)newHealth / maxHealth;
+                            healthBar.setProgress(healthPercent);
+                            String barColor = healthPercent > 0.6 ? "#2ecc71" : healthPercent > 0.3 ? "#f39c12" : "#e74c3c";
+                            healthBar.setStyle(
+                                "-fx-accent: " + barColor + ";" +
+                                "-fx-control-inner-background: " + barColor + ";" +
+                                "-fx-background-color: linear-gradient(to bottom, derive(" + barColor + ", -20%), " + barColor + ");" +
+                                "-fx-background-insets: 0;" +
+                                "-fx-background-radius: 4;" +
+                                "-fx-padding: 0;" +
+                                "-fx-border-color: rgba(0,0,0,0.4);" +
+                                "-fx-border-width: 1;" +
+                                "-fx-border-radius: 4;"
+                            );
+                            
+                            // Mettre à jour le texte des PV dans le StackPane
+                            if (healthBar.getParent() instanceof StackPane) {
+                                StackPane healthContainer = (StackPane) healthBar.getParent();
+                                if (healthContainer.getChildren().size() > 1 && healthContainer.getChildren().get(1) instanceof javafx.scene.control.Label) {
+                                    javafx.scene.control.Label healthText = (javafx.scene.control.Label) healthContainer.getChildren().get(1);
+                                    healthText.setText(newHealth + "/" + maxHealth);
+                                }
+                            }
+                            
+                            System.out.println("[CLIENT] ProgressBar mis à jour: " + healthPercent * 100 + "%");
                         });
                     } else {
                         // Debug: print all keys in the map
@@ -741,11 +794,11 @@ public class HelloController {
                         System.out.println("[CLIENT] Pièce " + couleur + " " + nom + " retirée");
                         
                         // Hide the piece visually
-                        if (healthLabel != null) {
+                        if (healthBar != null) {
                             Platform.runLater(() -> {
-                                if (healthLabel.getParent() != null) {
-                                    healthLabel.setVisible(false);
-                                    healthLabel.getParent().setVisible(false);
+                                if (healthBar.getParent() != null) {
+                                    healthBar.setVisible(false);
+                                    healthBar.getParent().setVisible(false);
                                 }
                             });
                         }

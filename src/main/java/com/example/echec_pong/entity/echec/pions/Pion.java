@@ -5,6 +5,7 @@ public class Pion {
     private String nom;
     private int position;
     private int point_de_vie;
+    private int point_de_vie_max; // Santé maximale pour la jauge
     private String couleur;
 
     public Pion(String symbol, String nom, int position, int point_de_vie) {
@@ -12,6 +13,7 @@ public class Pion {
         this.nom = nom;
         this.position = position;
         this.point_de_vie = point_de_vie;
+        this.point_de_vie_max = point_de_vie; // Initialiser max à la valeur initiale
         // Infer color from symbol (white pieces: ♔♕♖♗♘♙, black pieces: ♚♛♜♝♞♟)
         this.couleur = (symbol.equals("♔") || symbol.equals("♕") || symbol.equals("♖") || 
                         symbol.equals("♗") || symbol.equals("♘") || symbol.equals("♙")) ? "blanc" : "noir";
@@ -41,6 +43,10 @@ public class Pion {
     // Alias methods for compatibility
     public int getSante() {
         return point_de_vie;
+    }
+    
+    public int getSanteMax() {
+        return point_de_vie_max;
     }
     
     public int getHealth() {

@@ -7,40 +7,40 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.layout.HBox?>
-<VBox alignment="CENTER" spacing="10.0" xmlns:fx="http://javafx.com/fxml">
+<VBox alignment="CENTER" spacing="12.0" xmlns:fx="http://javafx.com/fxml" style="-fx-background-color: linear-gradient(to bottom, #34495e, #2c3e50); -fx-padding: 25;">
     <padding>
-        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
+        <Insets bottom="25.0" left="25.0" right="25.0" top="25.0"/>
     </padding>
 
-    <Label text="Paramètres du jeu (Hôte)"/>
+    <Label text="⚙ Paramètres du jeu (Hôte) ⚙" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #ecf0f1; -fx-padding: 0 0 10 0;"/>
     <HBox spacing="10.0" alignment="CENTER">
-        <Label text="Largeur:"/>
-        <TextField fx:id="widthField" text="8" prefWidth="50"/>
-        <Label text="Hauteur:"/>
-        <TextField fx:id="heightField" text="8" prefWidth="50"/>
+        <Label text="Largeur:" style="-fx-text-fill: #bdc3c7;"/>
+        <TextField fx:id="widthField" text="8" prefWidth="50" style="-fx-background-radius: 5;"/>
+        <Label text="Hauteur:" style="-fx-text-fill: #bdc3c7;"/>
+        <TextField fx:id="heightField" text="8" prefWidth="50" style="-fx-background-radius: 5;"/>
     </HBox>
     <HBox spacing="10.0" alignment="CENTER">
-        <Label text="PV Pion:"/>
-        <TextField fx:id="pionHealth" text="3" prefWidth="50"/>
-        <Label text="PV Cavalier:"/>
-        <TextField fx:id="cavalierHealth" text="5" prefWidth="50"/>
+        <Label text="PV Pion:" style="-fx-text-fill: #bdc3c7;"/>
+        <TextField fx:id="pionHealth" text="3" prefWidth="50" style="-fx-background-radius: 5;"/>
+        <Label text="PV Cavalier:" style="-fx-text-fill: #bdc3c7;"/>
+        <TextField fx:id="cavalierHealth" text="5" prefWidth="50" style="-fx-background-radius: 5;"/>
     </HBox>
     <HBox spacing="10.0" alignment="CENTER">
-        <Label text="PV Fou:"/>
-        <TextField fx:id="fouHealth" text="5" prefWidth="50"/>
-        <Label text="PV Tour:"/>
-        <TextField fx:id="tourHealth" text="5" prefWidth="50"/>
+        <Label text="PV Fou:" style="-fx-text-fill: #bdc3c7;"/>
+        <TextField fx:id="fouHealth" text="5" prefWidth="50" style="-fx-background-radius: 5;"/>
+        <Label text="PV Tour:" style="-fx-text-fill: #bdc3c7;"/>
+        <TextField fx:id="tourHealth" text="5" prefWidth="50" style="-fx-background-radius: 5;"/>
     </HBox>
     <HBox spacing="10.0" alignment="CENTER">
-        <Label text="PV Dame:"/>
-        <TextField fx:id="dameHealth" text="8" prefWidth="50"/>
-        <Label text="PV Roi:"/>
-        <TextField fx:id="roiHealth" text="10" prefWidth="50"/>
+        <Label text="PV Dame:" style="-fx-text-fill: #bdc3c7;"/>
+        <TextField fx:id="dameHealth" text="8" prefWidth="50" style="-fx-background-radius: 5;"/>
+        <Label text="PV Roi:" style="-fx-text-fill: #bdc3c7;"/>
+        <TextField fx:id="roiHealth" text="10" prefWidth="50" style="-fx-background-radius: 5;"/>
     </HBox>
     <HBox spacing="10.0" alignment="CENTER">
-        <Label text="Premier service:"/>
-        <ComboBox fx:id="firstServeCombo" prefWidth="100"/>
+        <Label text="Premier service:" style="-fx-text-fill: #bdc3c7;"/>
+        <ComboBox fx:id="firstServeCombo" prefWidth="120" style="-fx-background-radius: 5;"/>
     </HBox>
-    <Label fx:id="statusLabel" text="En attente de client..."/>
-    <Button text="Démarrer" fx:id="startButton"/>
+    <Label fx:id="statusLabel" text="En attente de client..." style="-fx-text-fill: #f39c12; -fx-font-style: italic;"/>
+    <Button text="▶ Démarrer" fx:id="startButton" style="-fx-font-size: 16px; -fx-background-color: #27ae60; -fx-text-fill: white; -fx-padding: 10 25; -fx-background-radius: 8; -fx-cursor: hand;"/>
 </VBox>
