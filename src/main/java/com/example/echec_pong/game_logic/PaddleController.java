@@ -3,7 +3,7 @@ package com.example.echec_pong.game_logic;
 public class PaddleController {
     private final GameState gameState;
     private final int boardWidth;
-    private final double paddleSpeed = 10.0;
+    private final double paddleSpeed = 15.0; // Vitesse augmentée pour meilleure réactivité
     
     public PaddleController(GameState gameState, int boardWidth) {
         this.gameState = gameState;

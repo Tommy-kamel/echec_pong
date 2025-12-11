@@ -109,7 +109,8 @@ public class BoardRenderer {
         for(int row=0; row<BOARD_ROWS; row++){
             for(int col=0; col<width; col++){
                 Rectangle rect = new Rectangle(CELL_SIZE,CELL_SIZE);
-                rect.setFill((row+col)%2==0 ? Color.BEIGE : Color.SADDLEBROWN);
+                // Cases alternées avec couleurs contrastées
+                rect.setFill((row+col)%2==0 ? Color.rgb(240, 217, 181) : Color.rgb(181, 136, 99));
                 StackPane cell = new StackPane();
                 cell.getChildren().add(rect);
                 
@@ -128,23 +129,60 @@ public class BoardRenderer {
                 if(piece != null){
                     VBox pieceContainer = new VBox();
                     pieceContainer.setAlignment(Pos.CENTER);
+                    pieceContainer.setSpacing(2);
                     
                     Label symbolLabel = new Label(piece.getSymbol());
                     symbolLabel.setFont(Font.font("System", FontWeight.BOLD, 36));
                     
-                    Label healthLabel = new Label("HP:" + piece.getSante());
-                    healthLabel.setFont(Font.font("System", FontWeight.NORMAL, 10));
-                    healthLabel.setTextFill(Color.RED);
+                    // Jauge de vie visuelle avec texte
+                    int maxHealth = piece.getSanteMax();
+                    int currentHealth = piece.getSante();
+                    double healthPercent = (double)currentHealth / maxHealth;
+                    
+                    // ProgressBar
+                    javafx.scene.control.ProgressBar healthBar = new javafx.scene.control.ProgressBar(healthPercent);
+                    healthBar.setPrefWidth(45);
+                    healthBar.setPrefHeight(12);
+                    healthBar.setMinHeight(12);
+                    healthBar.setMaxHeight(12);
+                    
+                    // Style complet pour rendre visible la barre
+                    String barColor = healthPercent > 0.6 ? "#2ecc71" : healthPercent > 0.3 ? "#f39c12" : "#e74c3c";
+                    healthBar.setStyle(
+                        "-fx-accent: " + barColor + ";" +
+                        "-fx-control-inner-background: " + barColor + ";" +
+                        "-fx-background-color: linear-gradient(to bottom, derive(" + barColor + ", -20%), " + barColor + ");" +
+                        "-fx-background-insets: 0;" +
+                        "-fx-background-radius: 4;" +
+                        "-fx-padding: 0;" +
+                        "-fx-border-color: rgba(0,0,0,0.4);" +
+                        "-fx-border-width: 1;" +
+                        "-fx-border-radius: 4;"
+                    );
+                    
+                    // Label avec les PV sur la barre
+                    Label healthText = new Label(currentHealth + "/" + maxHealth);
+                    healthText.setFont(Font.font("System", FontWeight.BOLD, 9));
+                    healthText.setTextFill(Color.WHITE);
+                    healthText.setStyle("-fx-effect: dropshadow(gaussian, black, 2, 1.0, 0, 0);");
+                    
+                    // StackPane pour superposer le texte sur la barre
+                    StackPane healthContainer = new StackPane();
+                    healthContainer.getChildren().addAll(healthBar, healthText);
+                    healthContainer.setAlignment(Pos.CENTER);
+                    
                     // All pieces of the same player have the same color
                     if(row <= 1){
-                        // Black player (top) - always black pieces
-                        symbolLabel.setTextFill(Color.BLACK);
+                        // Black player (top) - dark blue with white shadow for visibility
+                        symbolLabel.setTextFill(Color.rgb(40, 40, 40));
+                        symbolLabel.setStyle("-fx-font-weight: bold; -fx-effect: dropshadow(gaussian, rgba(255,255,255,0.5), 2, 0.5, 0, 0);");
                     }else{
-                        // White player (bottom) - always white/light gray pieces  
-                        symbolLabel.setTextFill(Color.GRAY);
+                        // White player (bottom) - white with dark shadow for contrast
+                        symbolLabel.setTextFill(Color.WHITE);
+                        symbolLabel.setStyle("-fx-font-weight: bold; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.6), 2, 0.7, 0, 0);");
                     }
                     
-                    pieceContainer.getChildren().addAll(symbolLabel, healthLabel);
+                    pieceContainer.getChildren().addAll(symbolLabel, healthContainer);
                     cell.getChildren().add(pieceContainer);
                 }
                 
@@ -160,24 +198,28 @@ public class BoardRenderer {
         double paddleHeight = 10;
 
         double blackPaddleX = ((width * CELL_SIZE) - paddleWidth) / 2;
-        // Rapproché du rang des pions noirs (haut du rang vide)
-        double blackPaddleY = (2 * CELL_SIZE) + (CELL_SIZE * 0.25) - (paddleHeight / 2);
+        // Aligné symétriquement : juste en dessous des pions noirs
+        double blackPaddleY = (2 * CELL_SIZE) - (paddleHeight / 2);
         Raquette raquetteNoir = new Raquette(blackPaddleX, blackPaddleY, paddleWidth, paddleHeight, "noir");
         Rectangle blackPaddleRect = new Rectangle(paddleWidth, paddleHeight);
-        blackPaddleRect.setFill(Color.DARKBLUE);
-        blackPaddleRect.setStroke(Color.YELLOW);
-        blackPaddleRect.setStrokeWidth(2);
+        blackPaddleRect.setFill(Color.rgb(30, 30, 80));
+        blackPaddleRect.setStroke(Color.rgb(100, 200, 255));
+        blackPaddleRect.setStrokeWidth(3);
+        blackPaddleRect.setArcWidth(10);
+        blackPaddleRect.setArcHeight(10);
         blackPaddleRect.setLayoutX(blackPaddleX);
         blackPaddleRect.setLayoutY(blackPaddleY);
 
         double whitePaddleX = ((width * CELL_SIZE) - paddleWidth) / 2;
-        // Rapproché du rang des pions blancs (bas du rang vide)
-        double whitePaddleY = ((BOARD_ROWS - 2) * CELL_SIZE) - (CELL_SIZE * 0.25) - (paddleHeight / 2);
+        // Aligné symétriquement : juste au-dessus des pions blancs
+        double whitePaddleY = ((BOARD_ROWS - 2) * CELL_SIZE) - (paddleHeight / 2);
         Raquette raquetteBlanc = new Raquette(whitePaddleX, whitePaddleY, paddleWidth, paddleHeight, "blanc");
         Rectangle whitePaddleRect = new Rectangle(paddleWidth, paddleHeight);
-        whitePaddleRect.setFill(Color.LIGHTBLUE);
-        whitePaddleRect.setStroke(Color.YELLOW);
-        whitePaddleRect.setStrokeWidth(2);
+        whitePaddleRect.setFill(Color.rgb(200, 220, 255));
+        whitePaddleRect.setStroke(Color.rgb(255, 200, 100));
+        whitePaddleRect.setStrokeWidth(3);
+        whitePaddleRect.setArcWidth(10);
+        whitePaddleRect.setArcHeight(10);
         whitePaddleRect.setLayoutX(whitePaddleX);
         whitePaddleRect.setLayoutY(whitePaddleY);
 
@@ -187,7 +229,13 @@ public class BoardRenderer {
         double ballY = (BOARD_ROWS * CELL_SIZE) / 2;
         Balle balle = new Balle(ballX, ballY, 0, 0, ballRadius);
         Circle ballCircle = new Circle(ballRadius);
-        ballCircle.setFill(Color.RED);
+        ballCircle.setFill(Color.rgb(255, 60, 60));
+        ballCircle.setStroke(Color.rgb(200, 0, 0));
+        ballCircle.setStrokeWidth(2);
+        ballCircle.setEffect(new javafx.scene.effect.DropShadow(10, Color.rgb(255, 100, 100)));
+        ballCircle.setStroke(Color.rgb(200, 0, 0));
+        ballCircle.setStrokeWidth(2);
+        ballCircle.setEffect(new javafx.scene.effect.DropShadow(10, Color.rgb(255, 100, 100)));
         ballCircle.setCenterX(ballX);
         ballCircle.setCenterY(ballY);
         ballCircle.setLayoutX(0);
@@ -245,16 +293,19 @@ public class BoardRenderer {
             gameState.addPiece(whiteMainPieces.get(i), BOARD_ROWS - 1, i);
         }
         
-        // Créer map des pièces vers leurs labels pour mise à jour
-        Map<Pion, Label> pieceHealthLabels = new HashMap<>();
+        // Créer map des pièces vers leurs barres de vie et conteneurs pour mise à jour
+        Map<Pion, javafx.scene.control.ProgressBar> pieceHealthLabels = new HashMap<>();
+        Map<Pion, VBox> pieceContainers = new HashMap<>();
         for(int row = 0; row < BOARD_ROWS; row++) {
             for(int col = 0; col < width; col++) {
                 Pion piece = gameState.getPieceAt(row, col);
                 if(piece != null) {
                     StackPane cell = (StackPane) grid.getChildren().get(row * width + col);
                     VBox container = (VBox) cell.getChildren().get(1);
-                    Label healthLabel = (Label) container.getChildren().get(1);
-                    pieceHealthLabels.put(piece, healthLabel);
+                    StackPane healthContainer = (StackPane) container.getChildren().get(1);
+                    javafx.scene.control.ProgressBar healthBar = (javafx.scene.control.ProgressBar) healthContainer.getChildren().get(0);
+                    pieceHealthLabels.put(piece, healthBar);
+                    pieceContainers.put(piece, container);
                 }
             }
         }
@@ -299,7 +350,7 @@ public class BoardRenderer {
         overlay.getChildren().addAll(serveArrow, serveLabel);
         
         return new GameRenderData(gameState, grid, overlay, blackPaddleRect, whitePaddleRect, 
-                                  ballCircle, pieceHealthLabels, serveArrow, serveLabel);
+                                  ballCircle, pieceHealthLabels, pieceContainers, serveArrow, serveLabel);
     }
     
 }
