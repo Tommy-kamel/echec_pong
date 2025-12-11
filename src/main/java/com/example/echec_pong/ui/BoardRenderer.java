@@ -204,7 +204,7 @@ public class BoardRenderer {
         Rectangle blackPaddleRect = new Rectangle(paddleWidth, paddleHeight);
         blackPaddleRect.setFill(Color.rgb(30, 30, 80));
         blackPaddleRect.setStroke(Color.rgb(100, 200, 255));
-        blackPaddleRect.setStrokeWidth(3);
+        blackPaddleRect.setStrokeWidth(3); 
         blackPaddleRect.setArcWidth(10);
         blackPaddleRect.setArcHeight(10);
         blackPaddleRect.setLayoutX(blackPaddleX);

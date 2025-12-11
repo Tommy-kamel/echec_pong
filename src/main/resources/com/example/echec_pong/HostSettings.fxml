@@ -6,6 +6,8 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.layout.HBox?>
 <VBox alignment="CENTER" spacing="12.0" xmlns:fx="http://javafx.com/fxml" style="-fx-background-color: linear-gradient(to bottom, #34495e, #2c3e50); -fx-padding: 25;">
     <padding>
@@ -13,6 +15,22 @@
     </padding>
 
     <Label text="⚙ Paramètres du jeu (Hôte) ⚙" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #ecf0f1; -fx-padding: 0 0 10 0;"/>
+    
+    <!-- Section choix source des paramètres -->
+    <HBox spacing="10.0" alignment="CENTER">
+        <CheckBox fx:id="useDbSettings" text="Charger depuis base de données (EJB)" style="-fx-text-fill: #3498db; -fx-font-weight: bold;"/>
+    </HBox>
+    <HBox spacing="10.0" alignment="CENTER" fx:id="dbSettingsBox">
+        <Label text="Configuration:" style="-fx-text-fill: #bdc3c7;"/>
+        <ComboBox fx:id="dbSettingsCombo" prefWidth="180" style="-fx-background-radius: 5;" promptText="Sélectionner..."/>
+        <Button fx:id="refreshDbButton" text="🔄" style="-fx-background-color: #3498db; -fx-text-fill: white; -fx-background-radius: 5;"/>
+    </HBox>
+    <Label fx:id="dbStatusLabel" text="" style="-fx-text-fill: #e74c3c; -fx-font-size: 11px;"/>
+    
+    <Separator style="-fx-background-color: #7f8c8d;"/>
+    
+    <!-- Paramètres manuels -->
+    <Label text="— ou paramètres manuels —" style="-fx-text-fill: #95a5a6; -fx-font-size: 11px;"/>
     <HBox spacing="10.0" alignment="CENTER">
         <Label text="Largeur:" style="-fx-text-fill: #bdc3c7;"/>
         <TextField fx:id="widthField" text="8" prefWidth="50" style="-fx-background-radius: 5;"/>

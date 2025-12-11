@@ -12,6 +12,7 @@ import javafx.scene.input.KeyCode;
 
 import java.io.*;
 import java.net.*;
+import java.util.List;
 import java.util.Map;
 
 import com.example.echec_pong.ui.ViewLoader;
@@ -23,6 +24,8 @@ import com.example.echec_pong.ui.ClientWaitingData;
 import com.example.echec_pong.entity.echec.pions.Pion;
 import com.example.echec_pong.game_logic.GameLogic;
 import com.example.echec_pong.game_logic.GameState;
+import com.example.echec_pong.service.GameSettingsClient;
+import com.example.echec_pong.service.GameSettingsClient.GameSettingsDTO;
 import com.example.echec_pong.network.GameStateUpdate;
 
 public class HelloController {
@@ -45,6 +48,11 @@ public class HelloController {
     private GameRenderData renderData;
     private volatile boolean networkRunning = true;
     private int ballStateReceived = 0; // Compteur pour debug
+    
+    // Client EJB pour récupérer les paramètres depuis la base de données
+    private GameSettingsClient settingsClient = new GameSettingsClient();
+    private List<GameSettingsDTO> dbSettingsList;
+    private boolean useDbSettings = false;
 
     @FXML
     private Label gameStatusLabel;
@@ -53,6 +61,8 @@ public class HelloController {
     private Pane gameArea;
     
     private Button replayButton;
+    private Button restartButton;
+    private Button backToSettingsButton;
 
     @FXML
     public void initialize() {
@@ -70,7 +80,140 @@ public class HelloController {
     }
 
     private void loadHostSettings() {
-        ViewLoader.loadHostSettings(mainContainer, this::demarrerJeuHost, this::startServer);
+        HostSettingsData data = ViewLoader.loadHostSettings(mainContainer, this::demarrerJeuHost, this::startServer);
+        
+        // Configurer les éléments pour le chargement depuis EJB
+        if (data != null && data.useDbSettings != null) {
+            setupDbSettingsControls(data);
+        }
+    }
+    
+    /**
+     * Configure les contrôles pour charger les paramètres depuis la base de données EJB
+     */
+    private void setupDbSettingsControls(HostSettingsData data) {
+        // Listener sur la checkbox pour afficher/masquer les options DB
+        data.useDbSettings.setOnAction(e -> {
+            boolean checked = data.useDbSettings.isSelected();
+            useDbSettings = checked;
+            
+            if (data.dbSettingsBox != null) {
+                data.dbSettingsBox.setVisible(checked);
+                data.dbSettingsBox.setManaged(checked);
+            }
+            
+            // Désactiver/activer les champs manuels
+            data.widthField.setDisable(checked);
+            data.pionHealth.setDisable(checked);
+            data.cavalierHealth.setDisable(checked);
+            data.fouHealth.setDisable(checked);
+            data.tourHealth.setDisable(checked);
+            data.dameHealth.setDisable(checked);
+            data.roiHealth.setDisable(checked);
+            data.firstServeCombo.setDisable(checked);
+            
+            if (checked) {
+                // Charger les paramètres depuis EJB
+                loadDbSettings(data);
+            }
+        });
+        
+        // Bouton rafraîchir
+        if (data.refreshDbButton != null) {
+            data.refreshDbButton.setOnAction(e -> loadDbSettings(data));
+        }
+        
+        // Listener sur le ComboBox pour appliquer les paramètres sélectionnés
+        if (data.dbSettingsCombo != null) {
+            data.dbSettingsCombo.setOnAction(e -> {
+                String selected = data.dbSettingsCombo.getValue();
+                if (selected != null && dbSettingsList != null) {
+                    applyDbSettings(data, selected);
+                }
+            });
+        }
+    }
+    
+    /**
+     * Charge la liste des paramètres depuis le microservice EJB
+     */
+    private void loadDbSettings(HostSettingsData data) {
+        if (data.dbStatusLabel != null) {
+            data.dbStatusLabel.setVisible(true);
+            data.dbStatusLabel.setText("Connexion au serveur EJB...");
+            data.dbStatusLabel.setStyle("-fx-text-fill: #3498db;");
+        }
+        
+        // Charger dans un thread séparé pour ne pas bloquer l'UI
+        new Thread(() -> {
+            try {
+                if (settingsClient.isServiceAvailable()) {
+                    dbSettingsList = settingsClient.getAllSettings();
+                    
+                    Platform.runLater(() -> {
+                        if (data.dbSettingsCombo != null) {
+                            data.dbSettingsCombo.getItems().clear();
+                            for (GameSettingsDTO settings : dbSettingsList) {
+                                data.dbSettingsCombo.getItems().add(settings.getName());
+                            }
+                            
+                            if (!dbSettingsList.isEmpty()) {
+                                data.dbSettingsCombo.setValue(dbSettingsList.get(0).getName());
+                                applyDbSettings(data, dbSettingsList.get(0).getName());
+                            }
+                        }
+                        
+                        if (data.dbStatusLabel != null) {
+                            data.dbStatusLabel.setText("✓ " + dbSettingsList.size() + " configuration(s) chargée(s)");
+                            data.dbStatusLabel.setStyle("-fx-text-fill: #27ae60;");
+                        }
+                    });
+                } else {
+                    Platform.runLater(() -> {
+                        if (data.dbStatusLabel != null) {
+                            data.dbStatusLabel.setText("✗ Service EJB non disponible (WildFly arrêté?)");
+                            data.dbStatusLabel.setStyle("-fx-text-fill: #e74c3c;");
+                        }
+                    });
+                }
+            } catch (Exception ex) {
+                Platform.runLater(() -> {
+                    if (data.dbStatusLabel != null) {
+                        data.dbStatusLabel.setText("✗ Erreur: " + ex.getMessage());
+                        data.dbStatusLabel.setStyle("-fx-text-fill: #e74c3c;");
+                    }
+                });
+            }
+        }).start();
+    }
+    
+    /**
+     * Applique les paramètres sélectionnés depuis la base de données aux champs
+     */
+    private void applyDbSettings(HostSettingsData data, String settingsName) {
+        if (dbSettingsList == null) return;
+        
+        for (GameSettingsDTO settings : dbSettingsList) {
+            if (settings.getName().equals(settingsName)) {
+                data.widthField.setText(String.valueOf(settings.getBoardWidth()));
+                data.pionHealth.setText(String.valueOf(settings.getPionHealth()));
+                data.cavalierHealth.setText(String.valueOf(settings.getCavalierHealth()));
+                data.fouHealth.setText(String.valueOf(settings.getFouHealth()));
+                data.tourHealth.setText(String.valueOf(settings.getTourHealth()));
+                data.dameHealth.setText(String.valueOf(settings.getDameHealth()));
+                data.roiHealth.setText(String.valueOf(settings.getRoiHealth()));
+                
+                // Appliquer le premier service
+                if ("white".equals(settings.getFirstServe())) {
+                    data.firstServeCombo.setValue("Blanc (Hôte)");
+                } else {
+                    data.firstServeCombo.setValue("Noir (Client)");
+                }
+                
+                System.out.println("[HOST] Paramètres DB appliqués: " + settings);
+                break;
+            }
+        }
     }
 
     private void loadClientWaiting() {
@@ -94,10 +237,24 @@ public class HelloController {
             gameStatusLabel = gameData.statusLabel;
             gameArea = gameData.gameArea;
             replayButton = gameData.replayButton;
+            restartButton = gameData.restartButton;
+            backToSettingsButton = gameData.backToSettingsButton;
             
             // Configurer le bouton Rejouer
             if(replayButton != null) {
                 replayButton.setOnAction(e -> handleReplay());
+            }
+            
+            // Configurer le bouton Recommencer
+            if(restartButton != null) {
+                restartButton.setOnAction(e -> handleRestart());
+                restartButton.setFocusTraversable(false); // Empêcher le bouton de prendre le focus
+            }
+            
+            // Configurer le bouton Retour aux paramètres
+            if(backToSettingsButton != null) {
+                backToSettingsButton.setOnAction(e -> handleBackToSettings());
+                backToSettingsButton.setFocusTraversable(false); // Empêcher le bouton de prendre le focus
             }
             
             createBoard();
@@ -418,6 +575,8 @@ public class HelloController {
             if (gameArea.getScene() != null) {
                 gameArea.getScene().setOnKeyPressed(this::handleKeyPressed);
                 gameArea.getScene().setOnKeyReleased(this::handleKeyReleased);
+                // S'assurer que gameArea a le focus pour recevoir les événements clavier
+                gameArea.requestFocus();
                 System.out.println((isHost ? "[HOST] " : "[CLIENT] ") + "Listeners clavier attachés à la scène");
             } else {
                 System.err.println((isHost ? "[HOST] " : "[CLIENT] ") + "ERREUR: Scène non disponible !");
@@ -875,6 +1034,46 @@ public class HelloController {
         
         // Recréer le plateau et redémarrer le jeu
         createBoard();
+    }
+    
+    private void handleRestart() {
+        // Arrêter le jeu en cours
+        if (gameLoop != null) {
+            gameLoop.stop();
+        }
+        
+        // Réinitialiser le label de statut
+        String playerSide = isHost ? "blanc (bas)" : "noir (haut)";
+        gameStatusLabel.setText("Jeu prêt ! Vous jouez " + playerSide + ". Utilisez les flèches.");
+        gameStatusLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: black;");
+        
+        // Cacher le bouton rejouer s'il était visible
+        if(replayButton != null) {
+            replayButton.setVisible(false);
+        }
+        
+        // Nettoyer le plateau actuel
+        gameArea.getChildren().clear();
+        
+        // Recréer le plateau et redémarrer le jeu
+        createBoard();
+    }
+    
+    private void handleBackToSettings() {
+        // Arrêter le jeu en cours
+        if (gameLoop != null) {
+            gameLoop.stop();
+        }
+        
+        // Fermer les connexions réseau
+        cleanup();
+        
+        // Réinitialiser les variables
+        clientConnected = false;
+        networkRunning = true;
+        
+        // Retourner à l'écran de sélection du rôle
+        ViewLoader.loadRoleSelection(mainContainer, this::choisirHote, this::choisirClient);
     }
     
     public void cleanup() {
