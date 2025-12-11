@@ -3,9 +3,11 @@ package com.example.echec_pong.ui;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 
@@ -51,15 +53,33 @@ public class ViewLoader {
             Label statusLabel = (Label) root.lookup("#statusLabel");
             Button startButton = (Button) root.lookup("#startButton");
             
+            // Nouveaux éléments pour EJB/base de données
+            CheckBox useDbSettings = (CheckBox) root.lookup("#useDbSettings");
+            ComboBox<String> dbSettingsCombo = (ComboBox<String>) root.lookup("#dbSettingsCombo");
+            Button refreshDbButton = (Button) root.lookup("#refreshDbButton");
+            Label dbStatusLabel = (Label) root.lookup("#dbStatusLabel");
+            HBox dbSettingsBox = (HBox) root.lookup("#dbSettingsBox");
+            
             // Initialiser le ComboBox
             if(firstServeCombo != null) {
                 firstServeCombo.getItems().addAll("Blanc (Hôte)", "Noir (Client)");
                 firstServeCombo.setValue("Blanc (Hôte)");
             }
+            
+            // Masquer les éléments DB par défaut
+            if(dbSettingsBox != null) {
+                dbSettingsBox.setVisible(false);
+                dbSettingsBox.setManaged(false);
+            }
+            if(dbStatusLabel != null) {
+                dbStatusLabel.setVisible(false);
+            }
 
             HostSettingsData data = new HostSettingsData(widthField, pionHealth, cavalierHealth, 
                                                          fouHealth, tourHealth, dameHealth, 
-                                                         roiHealth, firstServeCombo, statusLabel);
+                                                         roiHealth, firstServeCombo, statusLabel,
+                                                         useDbSettings, dbSettingsCombo, refreshDbButton,
+                                                         dbStatusLabel, dbSettingsBox);
 
             startButton.setOnAction(e -> onStartGame.accept(data));
             onServerStart.accept(statusLabel);
