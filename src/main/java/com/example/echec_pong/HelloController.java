@@ -53,6 +53,8 @@ public class HelloController {
     private Pane gameArea;
     
     private Button replayButton;
+    private Button restartButton;
+    private Button backToSettingsButton;
 
     @FXML
     public void initialize() {
@@ -94,10 +96,24 @@ public class HelloController {
             gameStatusLabel = gameData.statusLabel;
             gameArea = gameData.gameArea;
             replayButton = gameData.replayButton;
+            restartButton = gameData.restartButton;
+            backToSettingsButton = gameData.backToSettingsButton;
             
             // Configurer le bouton Rejouer
             if(replayButton != null) {
                 replayButton.setOnAction(e -> handleReplay());
+            }
+            
+            // Configurer le bouton Recommencer
+            if(restartButton != null) {
+                restartButton.setOnAction(e -> handleRestart());
+                restartButton.setFocusTraversable(false); // Empêcher le bouton de prendre le focus
+            }
+            
+            // Configurer le bouton Retour aux paramètres
+            if(backToSettingsButton != null) {
+                backToSettingsButton.setOnAction(e -> handleBackToSettings());
+                backToSettingsButton.setFocusTraversable(false); // Empêcher le bouton de prendre le focus
             }
             
             createBoard();
@@ -418,6 +434,8 @@ public class HelloController {
             if (gameArea.getScene() != null) {
                 gameArea.getScene().setOnKeyPressed(this::handleKeyPressed);
                 gameArea.getScene().setOnKeyReleased(this::handleKeyReleased);
+                // S'assurer que gameArea a le focus pour recevoir les événements clavier
+                gameArea.requestFocus();
                 System.out.println((isHost ? "[HOST] " : "[CLIENT] ") + "Listeners clavier attachés à la scène");
             } else {
                 System.err.println((isHost ? "[HOST] " : "[CLIENT] ") + "ERREUR: Scène non disponible !");
@@ -875,6 +893,46 @@ public class HelloController {
         
         // Recréer le plateau et redémarrer le jeu
         createBoard();
+    }
+    
+    private void handleRestart() {
+        // Arrêter le jeu en cours
+        if (gameLoop != null) {
+            gameLoop.stop();
+        }
+        
+        // Réinitialiser le label de statut
+        String playerSide = isHost ? "blanc (bas)" : "noir (haut)";
+        gameStatusLabel.setText("Jeu prêt ! Vous jouez " + playerSide + ". Utilisez les flèches.");
+        gameStatusLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: black;");
+        
+        // Cacher le bouton rejouer s'il était visible
+        if(replayButton != null) {
+            replayButton.setVisible(false);
+        }
+        
+        // Nettoyer le plateau actuel
+        gameArea.getChildren().clear();
+        
+        // Recréer le plateau et redémarrer le jeu
+        createBoard();
+    }
+    
+    private void handleBackToSettings() {
+        // Arrêter le jeu en cours
+        if (gameLoop != null) {
+            gameLoop.stop();
+        }
+        
+        // Fermer les connexions réseau
+        cleanup();
+        
+        // Réinitialiser les variables
+        clientConnected = false;
+        networkRunning = true;
+        
+        // Retourner à l'écran de sélection du rôle
+        ViewLoader.loadRoleSelection(mainContainer, this::choisirHote, this::choisirClient);
     }
     
     public void cleanup() {
