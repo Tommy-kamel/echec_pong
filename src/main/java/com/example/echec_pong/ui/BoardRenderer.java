@@ -198,8 +198,8 @@ public class BoardRenderer {
         double paddleHeight = 10;
 
         double blackPaddleX = ((width * CELL_SIZE) - paddleWidth) / 2;
-        // Aligné symétriquement : juste en dessous des pions noirs
-        double blackPaddleY = (2 * CELL_SIZE) - (paddleHeight / 2);
+        // Position en dessous des pions noirs (rangée 1), avec espacement
+        double blackPaddleY = (2 * CELL_SIZE) + (paddleHeight / 2) + 30;
         Raquette raquetteNoir = new Raquette(blackPaddleX, blackPaddleY, paddleWidth, paddleHeight, "noir");
         Rectangle blackPaddleRect = new Rectangle(paddleWidth, paddleHeight);
         blackPaddleRect.setFill(Color.rgb(30, 30, 80));
@@ -211,8 +211,8 @@ public class BoardRenderer {
         blackPaddleRect.setLayoutY(blackPaddleY);
 
         double whitePaddleX = ((width * CELL_SIZE) - paddleWidth) / 2;
-        // Aligné symétriquement : juste au-dessus des pions blancs
-        double whitePaddleY = ((BOARD_ROWS - 2) * CELL_SIZE) - (paddleHeight / 2);
+        // Position au-dessus des pions blancs (rangée BOARD_ROWS-2), avec espacement
+        double whitePaddleY = ((BOARD_ROWS - 2) * CELL_SIZE) - (paddleHeight / 2) - 5;
         Raquette raquetteBlanc = new Raquette(whitePaddleX, whitePaddleY, paddleWidth, paddleHeight, "blanc");
         Rectangle whitePaddleRect = new Rectangle(paddleWidth, paddleHeight);
         whitePaddleRect.setFill(Color.rgb(200, 220, 255));
