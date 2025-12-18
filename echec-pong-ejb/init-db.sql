@@ -1,10 +1,7 @@
--- Script d'initialisation de la base de données MySQL
--- Ce script est exécuté automatiquement au démarrage du conteneur Docker
 DROP DATABASE IF EXISTS echec_pong_db;
 CREATE DATABASE echec_pong_db;
 USE echec_pong_db;
 
--- Création de la table game_settings
 CREATE TABLE IF NOT EXISTS game_settings (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL UNIQUE,
@@ -22,7 +19,6 @@ CREATE TABLE IF NOT EXISTS game_settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Insertion des paramètres par défaut
 INSERT INTO game_settings (name, board_width, pion_health, cavalier_health, fou_health, tour_health, dame_health, roi_health, first_serve, progress_bar_capacity, special_damage)
 VALUES 
     ('default', 8, 3, 5, 5, 5, 8, 10, 'black', 5, 3),
@@ -32,5 +28,4 @@ VALUES
     ('large_board', 8, 3, 5, 5, 5, 8, 10, 'black', 6, 4)
 ON DUPLICATE KEY UPDATE name = VALUES(name);
 
--- Afficher les données insérées
 SELECT * FROM game_settings;

@@ -277,7 +277,7 @@ public class GameLogic {
         
         // Composante verticale (Y) - toujours vers l'adversaire
         double velocityY = baseSpeed * Math.cos(angle);
-        if(servingUp) {
+        if(servingUp) { 
             velocityY = -Math.abs(velocityY); // vers le haut (négatif)
             // velocityX reste tel quel pour le serveur blanc
         } else {
