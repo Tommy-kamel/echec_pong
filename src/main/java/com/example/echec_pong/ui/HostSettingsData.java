@@ -18,6 +18,10 @@ public class HostSettingsData {
     public final ComboBox<String> firstServeCombo;
     public final Label statusLabel;
     
+    // Champs pour la capacité spéciale
+    public final TextField progressBarCapacity;
+    public final TextField specialDamage;
+    
     // Nouveaux champs pour EJB/base de données
     public final CheckBox useDbSettings;
     public final ComboBox<String> dbSettingsCombo;
@@ -28,6 +32,7 @@ public class HostSettingsData {
     public HostSettingsData(TextField widthField, TextField pionHealth, TextField cavalierHealth,
                            TextField fouHealth, TextField tourHealth, TextField dameHealth,
                            TextField roiHealth, ComboBox<String> firstServeCombo, Label statusLabel,
+                           TextField progressBarCapacity, TextField specialDamage,
                            CheckBox useDbSettings, ComboBox<String> dbSettingsCombo, 
                            Button refreshDbButton, Label dbStatusLabel, HBox dbSettingsBox) {
         this.widthField = widthField;
@@ -39,6 +44,8 @@ public class HostSettingsData {
         this.roiHealth = roiHealth;
         this.firstServeCombo = firstServeCombo;
         this.statusLabel = statusLabel;
+        this.progressBarCapacity = progressBarCapacity;
+        this.specialDamage = specialDamage;
         this.useDbSettings = useDbSettings;
         this.dbSettingsCombo = dbSettingsCombo;
         this.refreshDbButton = refreshDbButton;

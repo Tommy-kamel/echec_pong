@@ -59,6 +59,16 @@
         <Label text="Premier service:" style="-fx-text-fill: #bdc3c7;"/>
         <ComboBox fx:id="firstServeCombo" prefWidth="120" style="-fx-background-radius: 5;"/>
     </HBox>
+    
+    <Separator style="-fx-background-color: #7f8c8d;"/>
+    <Label text="— Capacité Spéciale —" style="-fx-text-fill: #f39c12; -fx-font-weight: bold;"/>
+    <HBox spacing="10.0" alignment="CENTER">
+        <Label text="Capacité barre:" style="-fx-text-fill: #bdc3c7;"/>
+        <TextField fx:id="progressBarCapacity" text="5" prefWidth="50" style="-fx-background-radius: 5;"/>
+        <Label text="Dégâts spéciaux:" style="-fx-text-fill: #bdc3c7;"/>
+        <TextField fx:id="specialDamage" text="3" prefWidth="50" style="-fx-background-radius: 5;"/>
+    </HBox>
+    
     <Label fx:id="statusLabel" text="En attente de client..." style="-fx-text-fill: #f39c12; -fx-font-style: italic;"/>
     <Button text="▶ Démarrer" fx:id="startButton" style="-fx-font-size: 16px; -fx-background-color: #27ae60; -fx-text-fill: white; -fx-padding: 10 25; -fx-background-radius: 8; -fx-cursor: hand;"/>
 </VBox>

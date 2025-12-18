@@ -1,6 +1,9 @@
 package com.example.echec_pong;
 
 import javafx.animation.AnimationTimer;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
@@ -9,6 +12,11 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.KeyCode;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.effect.Glow;
+import javafx.scene.effect.Bloom;
+import javafx.scene.paint.Color;
+import javafx.util.Duration;
 
 import java.io.*;
 import java.net.*;
@@ -48,6 +56,13 @@ public class HelloController {
     private GameRenderData renderData;
     private volatile boolean networkRunning = true;
     private int ballStateReceived = 0; // Compteur pour debug
+    
+    // Paramètres de la barre de progression
+    private int progressBarCapacity = 5;
+    private int specialDamage = 3;
+    
+    // Animation de feu pour la balle
+    private Timeline fireAnimation;
     
     // Client EJB pour récupérer les paramètres depuis la base de données
     private GameSettingsClient settingsClient = new GameSettingsClient();
@@ -203,6 +218,10 @@ public class HelloController {
                 data.dameHealth.setText(String.valueOf(settings.getDameHealth()));
                 data.roiHealth.setText(String.valueOf(settings.getRoiHealth()));
                 
+                // Appliquer les paramètres de la capacité spéciale
+                data.progressBarCapacity.setText(String.valueOf(settings.getProgressBarCapacity()));
+                data.specialDamage.setText(String.valueOf(settings.getSpecialDamage()));
+                
                 // Appliquer le premier service
                 if ("white".equals(settings.getFirstServe())) {
                     data.firstServeCombo.setValue("Blanc (Hôte)");
@@ -295,6 +314,8 @@ public class HelloController {
                 dameHealth = in.readInt();
                 roiHealth = in.readInt();
                 String firstServe = in.readUTF();
+                progressBarCapacity = in.readInt();
+                specialDamage = in.readInt();
                 blackStarts = firstServe.equalsIgnoreCase("Hôte");
                 Platform.runLater(() -> {
                     statusLabel.setText("Démarrage du jeu...");
@@ -327,6 +348,8 @@ public class HelloController {
             String tourHealthText = data.tourHealth.getText().trim();
             String dameHealthText = data.dameHealth.getText().trim();
             String roiHealthText = data.roiHealth.getText().trim();
+            String progressBarCapacityText = data.progressBarCapacity.getText().trim();
+            String specialDamageText = data.specialDamage.getText().trim();
             
             // Récupérer la sélection du ComboBox
             String firstServeSelection = data.firstServeCombo.getValue();
@@ -337,7 +360,7 @@ public class HelloController {
             
             if (widthText.isEmpty() || pionHealthText.isEmpty() || cavalierHealthText.isEmpty() ||
                 fouHealthText.isEmpty() || tourHealthText.isEmpty() || dameHealthText.isEmpty() ||
-                roiHealthText.isEmpty()) {
+                roiHealthText.isEmpty() || progressBarCapacityText.isEmpty() || specialDamageText.isEmpty()) {
                 data.statusLabel.setText("Veuillez remplir tous les champs !");
                 return;
             }
@@ -350,6 +373,8 @@ public class HelloController {
             tourHealth = Integer.parseInt(tourHealthText);
             dameHealth = Integer.parseInt(dameHealthText);
             roiHealth = Integer.parseInt(roiHealthText);
+            progressBarCapacity = Integer.parseInt(progressBarCapacityText);
+            specialDamage = Integer.parseInt(specialDamageText);
             
             // Convertir la sélection en "white" ou "black"
             firstServe = firstServeSelection.contains("Blanc") ? "white" : "black";
@@ -368,6 +393,8 @@ public class HelloController {
             out.writeInt(dameHealth);
             out.writeInt(roiHealth);
             out.writeUTF(firstServe);
+            out.writeInt(progressBarCapacity);
+            out.writeInt(specialDamage);
             out.flush();
             loadGame();
         } catch (IOException e) {
@@ -383,11 +410,52 @@ public class HelloController {
         pieceContainers = renderData.pieceContainers;
         gameLogic = new GameLogic(renderData.gameState, width);
         
+        // Configurer les paramètres de la barre de progression dans le GameState
+        renderData.gameState.setProgressBarCapacity(progressBarCapacity);
+        renderData.gameState.setSpecialDamage(specialDamage);
+        
+        // Mettre à jour le label de la barre de progression unique
+        renderData.progressLabel.setText("⚡ 0/" + progressBarCapacity);
+        
         // Setup callback for piece hits (only host sends updates)
         if (isHost) {
             gameLogic.setPieceHitCallback((piece, row, col, newHealth) -> {
                 System.out.println("[HOST] Callback PIECE_HIT: pièce=" + piece.getCouleur() + " " + piece.getNom() + " row=" + row + " col=" + col + " HP=" + newHealth);
                 sendPieceHit(row, col, piece.getCouleur(), piece.getNom(), newHealth);
+            });
+            
+            // Setup callback pour la barre de progression (PARTAGÉE)
+            final GameRenderData rd = renderData;
+            gameLogic.setProgressBarCallback(new GameLogic.ProgressBarCallback() {
+                @Override
+                public void onProgressBarChanged(int currentProgress, int maxProgress) {
+                    Platform.runLater(() -> {
+                        double progress = (double) currentProgress / maxProgress;
+                        rd.progressBar.setProgress(progress);
+                        rd.progressLabel.setText("⚡ " + currentProgress + "/" + maxProgress);
+                    });
+                }
+                
+                @Override
+                public void onSpecialActivated(int specialDamage) {
+                    Platform.runLater(() -> {
+                        rd.specialLabel.setText("🔥 SPÉCIAL! (-" + specialDamage + ")");
+                        rd.specialLabel.setVisible(true);
+                        
+                        // Animation de feu pour la balle
+                        startFireAnimation(rd);
+                    });
+                }
+                
+                @Override
+                public void onSpecialDeactivated() {
+                    Platform.runLater(() -> {
+                        rd.specialLabel.setVisible(false);
+                        
+                        // Arrêter l'animation de feu
+                        stopFireAnimation(rd);
+                    });
+                }
             });
         }
         
@@ -1117,5 +1185,61 @@ public class HelloController {
         String playerSide = isHost ? "blanc (bas)" : "noir (haut)";
         double angle = gameLogic.getGameState().getServeAngle();
         gameStatusLabel.setText("Service ! Angle: " + (int)angle + "° - Vous jouez " + playerSide);
+    }
+    
+    /**
+     * Démarre l'animation de feu pour la balle (capacité spéciale)
+     */
+    private void startFireAnimation(GameRenderData rd) {
+        // Arrêter toute animation existante
+        if (fireAnimation != null) {
+            fireAnimation.stop();
+        }
+        
+        // Créer un effet de flamme dynamique
+        DropShadow fireShadow = new DropShadow();
+        fireShadow.setRadius(20);
+        fireShadow.setSpread(0.6);
+        
+        Glow glow = new Glow(0.8);
+        glow.setInput(fireShadow);
+        
+        rd.ballCircle.setEffect(glow);
+        
+        // Animation de couleurs de feu
+        fireAnimation = new Timeline(
+            new KeyFrame(Duration.ZERO,
+                new KeyValue(fireShadow.colorProperty(), Color.YELLOW)),
+            new KeyFrame(Duration.millis(100),
+                e -> rd.ballCircle.setFill(Color.GOLD)),
+            new KeyFrame(Duration.millis(150),
+                new KeyValue(fireShadow.colorProperty(), Color.ORANGE)),
+            new KeyFrame(Duration.millis(200),
+                e -> rd.ballCircle.setFill(Color.ORANGERED)),
+            new KeyFrame(Duration.millis(300),
+                new KeyValue(fireShadow.colorProperty(), Color.RED)),
+            new KeyFrame(Duration.millis(350),
+                e -> rd.ballCircle.setFill(Color.GOLD)),
+            new KeyFrame(Duration.millis(400),
+                new KeyValue(fireShadow.colorProperty(), Color.ORANGE)),
+            new KeyFrame(Duration.millis(500),
+                new KeyValue(fireShadow.colorProperty(), Color.YELLOW))
+        );
+        fireAnimation.setCycleCount(Timeline.INDEFINITE);
+        fireAnimation.play();
+    }
+    
+    /**
+     * Arrête l'animation de feu et remet la balle normale
+     */
+    private void stopFireAnimation(GameRenderData rd) {
+        if (fireAnimation != null) {
+            fireAnimation.stop();
+            fireAnimation = null;
+        }
+        
+        // Remettre la balle à son état normal
+        rd.ballCircle.setFill(Color.rgb(255, 60, 60));
+        rd.ballCircle.setEffect(new DropShadow(10, Color.rgb(255, 100, 100)));
     }
 }

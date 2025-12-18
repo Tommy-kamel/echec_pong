@@ -32,6 +32,8 @@ public class GameSettingsClient {
         private int dameHealth;
         private int roiHealth;
         private String firstServe;
+        private int progressBarCapacity;
+        private int specialDamage;
 
         // Getters et Setters
         public Long getId() { return id; }
@@ -63,6 +65,12 @@ public class GameSettingsClient {
         
         public String getFirstServe() { return firstServe; }
         public void setFirstServe(String firstServe) { this.firstServe = firstServe; }
+
+        public int getProgressBarCapacity() { return progressBarCapacity; }
+        public void setProgressBarCapacity(int progressBarCapacity) { this.progressBarCapacity = progressBarCapacity; }
+
+        public int getSpecialDamage() { return specialDamage; }
+        public void setSpecialDamage(int specialDamage) { this.specialDamage = specialDamage; }
 
         @Override
         public String toString() {
@@ -207,6 +215,8 @@ public class GameSettingsClient {
         dto.setDameHealth(extractInt(json, "dameHealth"));
         dto.setRoiHealth(extractInt(json, "roiHealth"));
         dto.setFirstServe(extractString(json, "firstServe"));
+        dto.setProgressBarCapacity(extractInt(json, "progressBarCapacity"));
+        dto.setSpecialDamage(extractInt(json, "specialDamage"));
         
         return dto;
     }
@@ -284,7 +294,9 @@ public class GameSettingsClient {
                 "\"tourHealth\":" + dto.getTourHealth() + "," +
                 "\"dameHealth\":" + dto.getDameHealth() + "," +
                 "\"roiHealth\":" + dto.getRoiHealth() + "," +
-                "\"firstServe\":\"" + dto.getFirstServe() + "\"" +
+                "\"firstServe\":\"" + dto.getFirstServe() + "\"," +
+                "\"progressBarCapacity\":" + dto.getProgressBarCapacity() + "," +
+                "\"specialDamage\":" + dto.getSpecialDamage() +
                 "}";
     }
 }
