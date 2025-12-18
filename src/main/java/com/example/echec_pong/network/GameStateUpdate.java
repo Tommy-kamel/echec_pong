@@ -12,7 +12,10 @@ public class GameStateUpdate implements Serializable {
         GAME_OVER,
         SERVE_STATE,     // Initialiser le serveur
         SERVE_ACTION,    // Lancer la balle
-        SERVE_ANGLE      // Changer l'angle
+        SERVE_ANGLE,     // Changer l'angle
+        PROGRESS_UPDATE, // Mise à jour barre de progression
+        SPECIAL_ACTIVATED,  // Capacité spéciale activée
+        SPECIAL_DEACTIVATED // Capacité spéciale désactivée
     }
     
     private UpdateType type;
@@ -40,6 +43,11 @@ public class GameStateUpdate implements Serializable {
     // Serve data
     private String server;  // "white" ou "black"
     private double serveAngle;  // Angle en degrés
+    
+    // Progress bar data
+    private int currentProgress;
+    private int maxProgress;
+    private int specialDamage;
     
     public GameStateUpdate(UpdateType type) {
         this.type = type;
@@ -94,6 +102,23 @@ public class GameStateUpdate implements Serializable {
         return update;
     }
     
+    public static GameStateUpdate progressUpdate(int currentProgress, int maxProgress) {
+        GameStateUpdate update = new GameStateUpdate(UpdateType.PROGRESS_UPDATE);
+        update.currentProgress = currentProgress;
+        update.maxProgress = maxProgress;
+        return update;
+    }
+    
+    public static GameStateUpdate specialActivated(int specialDamage) {
+        GameStateUpdate update = new GameStateUpdate(UpdateType.SPECIAL_ACTIVATED);
+        update.specialDamage = specialDamage;
+        return update;
+    }
+    
+    public static GameStateUpdate specialDeactivated() {
+        return new GameStateUpdate(UpdateType.SPECIAL_DEACTIVATED);
+    }
+    
     // Getters
     public UpdateType getType() { return type; }
     public double getPaddleX() { return paddleX; }
@@ -110,4 +135,7 @@ public class GameStateUpdate implements Serializable {
     public String getWinner() { return winner; }
     public String getServer() { return server; }
     public double getServeAngle() { return serveAngle; }
+    public int getCurrentProgress() { return currentProgress; }
+    public int getMaxProgress() { return maxProgress; }
+    public int getSpecialDamage() { return specialDamage; }
 }

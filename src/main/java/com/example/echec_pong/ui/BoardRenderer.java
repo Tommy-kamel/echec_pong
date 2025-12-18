@@ -306,11 +306,8 @@ public class BoardRenderer {
         progressBarBox.setAlignment(Pos.CENTER);
         progressBarBox.getChildren().addAll(progressContainer, specialLabel);
         
-        // Si c'est le client, inverser les labels
-        if (!isHost) {
-            progressLabel.setRotate(180);
-            specialLabel.setRotate(180);
-        }
+        // La barre de progression est AU-DESSUS du plateau, pas dans le boardContainer
+        // Donc elle reste lisible sans rotation pour le client
         
         mainLayout.getChildren().addAll(progressBarBox, boardContainer);
         

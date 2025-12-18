@@ -434,6 +434,8 @@ public class HelloController {
                         rd.progressBar.setProgress(progress);
                         rd.progressLabel.setText("⚡ " + currentProgress + "/" + maxProgress);
                     });
+                    // Envoyer la mise à jour au client
+                    sendProgressUpdate(currentProgress, maxProgress);
                 }
                 
                 @Override
@@ -445,6 +447,8 @@ public class HelloController {
                         // Animation de feu pour la balle
                         startFireAnimation(rd);
                     });
+                    // Envoyer au client
+                    sendSpecialActivated(specialDamage);
                 }
                 
                 @Override
@@ -455,6 +459,8 @@ public class HelloController {
                         // Arrêter l'animation de feu
                         stopFireAnimation(rd);
                     });
+                    // Envoyer au client
+                    sendSpecialDeactivated();
                 }
             });
         }
@@ -861,6 +867,45 @@ public class HelloController {
         }
     }
     
+    private synchronized void sendProgressUpdate(int currentProgress, int maxProgress) {
+        if (out == null || !isHost || !networkRunning) return;
+        
+        try {
+            GameStateUpdate update = GameStateUpdate.progressUpdate(currentProgress, maxProgress);
+            out.writeObject(update);
+            out.flush();
+            out.reset();
+        } catch (IOException e) {
+            System.err.println("Erreur envoi progression: " + e.getMessage());
+        }
+    }
+    
+    private synchronized void sendSpecialActivated(int specialDamage) {
+        if (out == null || !isHost || !networkRunning) return;
+        
+        try {
+            GameStateUpdate update = GameStateUpdate.specialActivated(specialDamage);
+            out.writeObject(update);
+            out.flush();
+            out.reset();
+        } catch (IOException e) {
+            System.err.println("Erreur envoi special activé: " + e.getMessage());
+        }
+    }
+    
+    private synchronized void sendSpecialDeactivated() {
+        if (out == null || !isHost || !networkRunning) return;
+        
+        try {
+            GameStateUpdate update = GameStateUpdate.specialDeactivated();
+            out.writeObject(update);
+            out.flush();
+            out.reset();
+        } catch (IOException e) {
+            System.err.println("Erreur envoi special désactivé: " + e.getMessage());
+        }
+    }
+    
     private void startNetworkListener() {
         new Thread(() -> {
             System.out.println((isHost ? "[HOST] " : "[CLIENT] ") + "Network listener démarré");
@@ -895,6 +940,15 @@ public class HelloController {
                                     break;
                                 case SERVE_ANGLE:
                                     handleRemoteServeAngle(update);
+                                    break;
+                                case PROGRESS_UPDATE:
+                                    handleRemoteProgressUpdate(update);
+                                    break;
+                                case SPECIAL_ACTIVATED:
+                                    handleRemoteSpecialActivated(update);
+                                    break;
+                                case SPECIAL_DEACTIVATED:
+                                    handleRemoteSpecialDeactivated();
                                     break;
                             }
                         } catch (Exception e) {
@@ -1084,6 +1138,38 @@ public class HelloController {
         double angle = update.getServeAngle();
         gameLogic.getGameState().setServeAngle(angle);
         System.out.println((isHost ? "[HOST]" : "[CLIENT]") + " Angle changé: " + angle + "°");
+    }
+    
+    private void handleRemoteProgressUpdate(GameStateUpdate update) {
+        if (!isHost && renderData != null) {
+            int currentProgress = update.getCurrentProgress();
+            int maxProgress = update.getMaxProgress();
+            Platform.runLater(() -> {
+                double progress = (double) currentProgress / maxProgress;
+                renderData.progressBar.setProgress(progress);
+                renderData.progressLabel.setText("⚡ " + currentProgress + "/" + maxProgress);
+            });
+        }
+    }
+    
+    private void handleRemoteSpecialActivated(GameStateUpdate update) {
+        if (!isHost && renderData != null) {
+            int specialDamage = update.getSpecialDamage();
+            Platform.runLater(() -> {
+                renderData.specialLabel.setText("🔥 SPÉCIAL! (-" + specialDamage + ")");
+                renderData.specialLabel.setVisible(true);
+                startFireAnimation(renderData);
+            });
+        }
+    }
+    
+    private void handleRemoteSpecialDeactivated() {
+        if (!isHost && renderData != null) {
+            Platform.runLater(() -> {
+                renderData.specialLabel.setVisible(false);
+                stopFireAnimation(renderData);
+            });
+        }
     }
     
     private void handleReplay() {
