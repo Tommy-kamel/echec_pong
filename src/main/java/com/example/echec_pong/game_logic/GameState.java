@@ -32,6 +32,13 @@ public class GameState {
     private boolean waitingForServe;
     private double serveAngle; // Angle en degrés: -45 (gauche), 0 (centre), 45 (droite)
     
+    // Barre de progression et capacité spéciale (PARTAGÉE entre les deux joueurs)
+    private int progressBar = 0;
+    private int progressBarCapacity = 5; // Capacité max par défaut
+    private int specialDamage = 3; // Dégâts spéciaux par défaut
+    private int specialDamageRemaining = 0; // Dégâts restants pour la balle spéciale
+    private boolean isSpecialActive = false;
+    
     public GameState(int boardWidth) {
         this.boardWidth = boardWidth;
         this.blackMainPieces = new ArrayList<>();
@@ -147,6 +154,47 @@ public class GameState {
     
     public double getServeAngle() { return serveAngle; }
     public void setServeAngle(double angle) { this.serveAngle = angle; }
+    
+    // Getters et setters pour la barre de progression et capacité spéciale (PARTAGÉE)
+    public int getProgressBar() { return progressBar; }
+    public void setProgressBar(int value) { this.progressBar = value; }
+    
+    public int getProgressBarCapacity() { return progressBarCapacity; }
+    public void setProgressBarCapacity(int capacity) { this.progressBarCapacity = capacity; }
+    
+    public int getSpecialDamage() { return specialDamage; }
+    public void setSpecialDamage(int damage) { this.specialDamage = damage; }
+    
+    public int getSpecialDamageRemaining() { return specialDamageRemaining; }
+    public void setSpecialDamageRemaining(int value) { this.specialDamageRemaining = value; }
+    
+    public boolean isSpecialActive() { return isSpecialActive; }
+    public void setSpecialActive(boolean active) { this.isSpecialActive = active; }
+    
+    /**
+     * Incrémente la barre de progression partagée
+     * @return true si la capacité spéciale est activée
+     */
+    public boolean incrementProgressBar() {
+        progressBar++;
+        if (progressBar >= progressBarCapacity) {
+            progressBar = 0;
+            specialDamageRemaining = specialDamage;
+            isSpecialActive = true;
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Désactive la capacité spéciale quand les dégâts sont épuisés
+     */
+    public void checkAndDeactivateSpecial() {
+        if (specialDamageRemaining <= 0) {
+            isSpecialActive = false;
+            specialDamageRemaining = 0;
+        }
+    }
     
     public static class GridPosition {
         public final int row;

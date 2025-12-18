@@ -119,6 +119,8 @@ public class GameSettingsResource {
         existing.setDameHealth(settings.getDameHealth());
         existing.setRoiHealth(settings.getRoiHealth());
         existing.setFirstServe(settings.getFirstServe());
+        existing.setProgressBarCapacity(settings.getProgressBarCapacity());
+        existing.setSpecialDamage(settings.getSpecialDamage());
         
         GameSettings updated = gameSettingsDAO.save(existing);
         return Response.ok(updated).build();
@@ -164,6 +166,8 @@ public class GameSettingsResource {
         settings.setDameHealth(8);
         settings.setRoiHealth(10);
         settings.setFirstServe("black");
+        settings.setProgressBarCapacity(5);
+        settings.setSpecialDamage(3);
         return settings;
     }
 }

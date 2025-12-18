@@ -25,11 +25,17 @@ public class GameRenderData {
     public final Polygon serveArrow;
     public final Label serveLabel;
     
+    // Barre de progression unique pour la capacité spéciale (partagée entre les deux joueurs)
+    public final ProgressBar progressBar;
+    public final Label progressLabel;
+    public final Label specialLabel;
+    
     public GameRenderData(GameState gameState, GridPane grid, Pane overlay,
                          Rectangle blackPaddleRect, Rectangle whitePaddleRect,
                          Circle ballCircle, Map<Pion, ProgressBar> pieceHealthLabels,
                          Map<Pion, VBox> pieceContainers,
-                         Polygon serveArrow, Label serveLabel) {
+                         Polygon serveArrow, Label serveLabel,
+                         ProgressBar progressBar, Label progressLabel, Label specialLabel) {
         this.gameState = gameState;
         this.grid = grid;
         this.overlay = overlay;
@@ -40,5 +46,8 @@ public class GameRenderData {
         this.pieceContainers = pieceContainers;
         this.serveArrow = serveArrow;
         this.serveLabel = serveLabel;
+        this.progressBar = progressBar;
+        this.progressLabel = progressLabel;
+        this.specialLabel = specialLabel;
     }
 }

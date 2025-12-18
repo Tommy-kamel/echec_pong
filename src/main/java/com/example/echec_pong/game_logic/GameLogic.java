@@ -17,12 +17,25 @@ public class GameLogic {
     // Callback pour notifier les changements de santé
     private PieceHitCallback pieceHitCallback;
     
+    // Callback pour notifier les changements de barre de progression
+    private ProgressBarCallback progressBarCallback;
+    
     public interface PieceHitCallback {
         void onPieceHit(Pion piece, int row, int col, int newHealth);
     }
     
+    public interface ProgressBarCallback {
+        void onProgressBarChanged(int currentProgress, int maxProgress);
+        void onSpecialActivated(int specialDamage);
+        void onSpecialDeactivated();
+    }
+    
     public void setPieceHitCallback(PieceHitCallback callback) {
         this.pieceHitCallback = callback;
+    }
+    
+    public void setProgressBarCallback(ProgressBarCallback callback) {
+        this.progressBarCallback = callback;
     }
     
     public GameLogic(GameState gameState, int boardWidth) {
@@ -79,11 +92,26 @@ public class GameLogic {
         
         // Vérifier collision haut/bas - rebondir au lieu de téléporter
         if(collisionDetector.checkBallTopBottomCollision()) {
+            // Si la balle spéciale touche le bord, elle redevient normale
+            deactivateSpecialOnBorderHit();
             gameState.getBalle().inverserVitesseY();
         }
         
         // Vérifier victoire
         checkWinCondition();
+    }
+    
+    /**
+     * Désactive la capacité spéciale si la balle touche un bord
+     */
+    private void deactivateSpecialOnBorderHit() {
+        if (gameState.isSpecialActive()) {
+            gameState.setSpecialActive(false);
+            gameState.setSpecialDamageRemaining(0);
+            if (progressBarCallback != null) {
+                progressBarCallback.onSpecialDeactivated();
+            }
+        }
     }
     
     /**
@@ -111,7 +139,23 @@ public class GameLogic {
      * Gère quand un pion est touché
      */
     private void handlePieceHit(Pion piece) {
-        piece.setSante(piece.getSante() - 1);
+        // Vérifier si la capacité spéciale est active (barre partagée)
+        boolean specialActive = gameState.isSpecialActive();
+        
+        int damage;
+        if (specialActive) {
+            // Utiliser les dégâts spéciaux restants
+            int remainingDamage = gameState.getSpecialDamageRemaining();
+            damage = Math.min(remainingDamage, piece.getSante()); // Ne pas infliger plus que les PV restants
+            
+            // Décrémenter les dégâts restants
+            gameState.setSpecialDamageRemaining(remainingDamage - damage);
+        } else {
+            damage = 1; // Dégâts normaux
+        }
+        
+        // Appliquer les dégâts
+        piece.setSante(piece.getSante() - damage);
         
         // Get position BEFORE removing the piece
         GameState.GridPosition pos = gameState.getPiecePosition(piece);
@@ -122,12 +166,45 @@ public class GameLogic {
         }
         
         // Retirer la pièce si HP <= 0
-        if(piece.getSante() <= 0) {
+        boolean pieceDied = piece.getSante() <= 0;
+        if (pieceDied) {
             gameState.removePiece(piece);
         }
         
-        // Inverser direction balle
-        gameState.getBalle().inverserVitesseY();
+        // Incrémenter la barre de progression (seulement si dégâts normaux)
+        if (!specialActive) {
+            boolean specialActivated = gameState.incrementProgressBar();
+            if (progressBarCallback != null) {
+                progressBarCallback.onProgressBarChanged(gameState.getProgressBar(), gameState.getProgressBarCapacity());
+                
+                if (specialActivated) {
+                    progressBarCallback.onSpecialActivated(gameState.getSpecialDamage());
+                }
+            }
+        }
+        
+        // Gérer le comportement de la balle après collision
+        if (specialActive) {
+            int remainingDamage = gameState.getSpecialDamageRemaining();
+            
+            if (remainingDamage <= 0) {
+                // Capacité épuisée, désactiver et faire rebondir normalement
+                gameState.checkAndDeactivateSpecial();
+                if (progressBarCallback != null) {
+                    progressBarCallback.onSpecialDeactivated();
+                }
+                gameState.getBalle().inverserVitesseY();
+            } else if (pieceDied) {
+                // Le pion est mort mais il reste des dégâts: la balle continue sans rebondir
+                // Ne pas inverser la direction
+            } else {
+                // Le pion n'est pas mort: la balle rebondit normalement
+                gameState.getBalle().inverserVitesseY();
+            }
+        } else {
+            // Comportement normal: inverser direction balle
+            gameState.getBalle().inverserVitesseY();
+        }
     }
     
     /**

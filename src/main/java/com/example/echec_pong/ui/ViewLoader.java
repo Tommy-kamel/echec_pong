@@ -53,6 +53,10 @@ public class ViewLoader {
             Label statusLabel = (Label) root.lookup("#statusLabel");
             Button startButton = (Button) root.lookup("#startButton");
             
+            // Champs pour la capacité spéciale
+            TextField progressBarCapacity = (TextField) root.lookup("#progressBarCapacity");
+            TextField specialDamage = (TextField) root.lookup("#specialDamage");
+            
             // Nouveaux éléments pour EJB/base de données
             CheckBox useDbSettings = (CheckBox) root.lookup("#useDbSettings");
             ComboBox<String> dbSettingsCombo = (ComboBox<String>) root.lookup("#dbSettingsCombo");
@@ -78,6 +82,7 @@ public class ViewLoader {
             HostSettingsData data = new HostSettingsData(widthField, pionHealth, cavalierHealth, 
                                                          fouHealth, tourHealth, dameHealth, 
                                                          roiHealth, firstServeCombo, statusLabel,
+                                                         progressBarCapacity, specialDamage,
                                                          useDbSettings, dbSettingsCombo, refreshDbButton,
                                                          dbStatusLabel, dbSettingsBox);
 

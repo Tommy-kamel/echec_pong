@@ -49,6 +49,12 @@ public class GameSettings implements Serializable {
     @Column(name = "first_serve", nullable = false)
     private String firstServe = "black"; // "black" ou "white"
 
+    @Column(name = "progress_bar_capacity", nullable = false)
+    private int progressBarCapacity = 5; // Capacité max de la barre de progression
+
+    @Column(name = "special_damage", nullable = false)
+    private int specialDamage = 3; // Dégâts infligés par la capacité spéciale
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -154,6 +160,22 @@ public class GameSettings implements Serializable {
         this.firstServe = firstServe;
     }
 
+    public int getProgressBarCapacity() {
+        return progressBarCapacity;
+    }
+
+    public void setProgressBarCapacity(int progressBarCapacity) {
+        this.progressBarCapacity = progressBarCapacity;
+    }
+
+    public int getSpecialDamage() {
+        return specialDamage;
+    }
+
+    public void setSpecialDamage(int specialDamage) {
+        this.specialDamage = specialDamage;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -175,6 +197,8 @@ public class GameSettings implements Serializable {
                 ", dameHealth=" + dameHealth +
                 ", roiHealth=" + roiHealth +
                 ", firstServe='" + firstServe + '\'' +
+                ", progressBarCapacity=" + progressBarCapacity +
+                ", specialDamage=" + specialDamage +
                 '}';
     }
 }

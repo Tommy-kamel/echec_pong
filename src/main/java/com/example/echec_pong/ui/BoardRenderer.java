@@ -2,6 +2,7 @@ package com.example.echec_pong.ui;
 
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.Region;
@@ -270,6 +271,53 @@ public class BoardRenderer {
 
         gameArea.getChildren().add(boardContainer);
         
+        // Créer UNE SEULE barre de progression partagée (au-dessus de l'échiquier)
+        double progressBarWidth = boardWidth * 0.8;
+        double progressBarHeight = 30;
+        
+        StackPane progressContainer = new StackPane();
+        progressContainer.setPrefSize(progressBarWidth, progressBarHeight);
+        
+        javafx.scene.control.ProgressBar progressBar = new javafx.scene.control.ProgressBar(0);
+        progressBar.setPrefWidth(progressBarWidth);
+        progressBar.setPrefHeight(progressBarHeight);
+        progressBar.setStyle("-fx-accent: linear-gradient(to right, #f39c12, #e74c3c, #9b59b6); -fx-background-color: #2c3e50; -fx-border-color: #1abc9c; -fx-border-width: 3; -fx-border-radius: 8; -fx-background-radius: 8;");
+        
+        Label progressLabel = new Label("⚡ 0/5");
+        progressLabel.setFont(Font.font("System", FontWeight.BOLD, 16));
+        progressLabel.setTextFill(Color.WHITE);
+        progressLabel.setStyle("-fx-effect: dropshadow(gaussian, black, 3, 1.0, 0, 0);");
+        
+        progressContainer.getChildren().addAll(progressBar, progressLabel);
+        StackPane.setAlignment(progressLabel, Pos.CENTER);
+        
+        Label specialLabel = new Label("🔥 SPÉCIAL ACTIVÉ!");
+        specialLabel.setFont(Font.font("System", FontWeight.BOLD, 18));
+        specialLabel.setTextFill(Color.ORANGE);
+        specialLabel.setStyle("-fx-background-color: rgba(255,50,0,0.5); -fx-padding: 8 20; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, orange, 15, 0.7, 0, 0);");
+        specialLabel.setVisible(false);
+        
+        // Créer un VBox pour organiser: barre + échiquier
+        VBox mainLayout = new VBox(15);
+        mainLayout.setAlignment(Pos.CENTER);
+        
+        // HBox pour barre + label spécial
+        HBox progressBarBox = new HBox(20);
+        progressBarBox.setAlignment(Pos.CENTER);
+        progressBarBox.getChildren().addAll(progressContainer, specialLabel);
+        
+        // Si c'est le client, inverser les labels
+        if (!isHost) {
+            progressLabel.setRotate(180);
+            specialLabel.setRotate(180);
+        }
+        
+        mainLayout.getChildren().addAll(progressBarBox, boardContainer);
+        
+        // Remplacer le contenu de gameArea
+        gameArea.getChildren().clear();
+        gameArea.getChildren().add(mainLayout);
+        
         // Créer GameState et ajouter les pièces
         GameState gameState = new GameState(width);
         gameState.setRaquetteNoir(raquetteNoir);
@@ -350,7 +398,8 @@ public class BoardRenderer {
         overlay.getChildren().addAll(serveArrow, serveLabel);
         
         return new GameRenderData(gameState, grid, overlay, blackPaddleRect, whitePaddleRect, 
-                                  ballCircle, pieceHealthLabels, pieceContainers, serveArrow, serveLabel);
+                                  ballCircle, pieceHealthLabels, pieceContainers, serveArrow, serveLabel,
+                                  progressBar, progressLabel, specialLabel);
     }
     
 }
